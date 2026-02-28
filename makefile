@@ -1,5 +1,5 @@
 COMPILER = gcc
-CFLAGS = -Iheaders
+CFLAGS = -Isrc/headers
 OFILES = bin/objectfiles
 EFILES = bin/executable
 
@@ -19,5 +19,5 @@ $(OFILES)/:
 $(EFILES)/:
 		mkdir -p $(EFILES)
 
-$(OFILES)/%.o: src/%.c $(OFILES)/
+$(OFILES)/%.o: src/implementations/%.c $(OFILES)/
 		$(COMPILER) -c $< -o $(OFILES)/$*.o $(CFLAGS)
