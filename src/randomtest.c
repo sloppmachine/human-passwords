@@ -1,30 +1,27 @@
 #include <stdlib.h>
 #include <stdio.h>
+
 #include <sys/random.h>
+
+#include <constants/alphanumerics.h>
+
+#include <interface/commons.h>
+#include <interface/randomtest.h>
 
 // this file exists to test the distribution reliability of random outputs
 
-struct distributionResults {
-    int leastCommon; // the number that was pulled the least often
-    int leastCommonRarity; // the times this number was pulled
-    int mostCommon; // the same but the number that was the most common
-    int mostCommonRarity;
-    int range; // the highest possible number plus one (the range is from 0 to rangeEnd - 1)
-    int samples; // the amount of numbers pulled
-};
 
-// pulls _samples samples from 0 - (_range - 1) and returns a struct distributionResults
 struct distributionResults* runDistributionTest(int _range, int _samples) {
     if (_range <= 0 || _samples <= 0) {
         printf("you need to enter positive values in to runDistributionTest.");
         return NULL;
     }
 
-    struct distributionResults* toReturn = malloc(sizeof(struct distributionResults));
+    struct distributionResults* toReturn = saferMalloc(sizeof(struct distributionResults), "distributionResults");
     toReturn -> range = _range;
     toReturn -> samples = _samples;
 
-    int* sampleOccurences = malloc(_range * sizeof(int));
+    int* sampleOccurences = saferMalloc(_range * sizeof(int), "int array");
     for (int i = 0; i < _range; i++) {
         sampleOccurences[i] = 0;
     }
