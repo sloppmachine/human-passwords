@@ -1,6 +1,6 @@
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <interface/commons.h>
@@ -31,7 +31,7 @@ static void insertHuffmanTree(struct huffmanTreeList* _list, struct huffmanTree*
 // removes the list entry at a specific index. not its content, the tree!
 static void removeHuffmanTreeAtIndex(struct huffmanTreeList* _list, int _index);
 
-static void printHuffmanCodesRecursive(struct huffmanTreeNode* _node, char* _prefix, int _prefixlength);
+static void printHuffmanCodesRecursive(struct huffmanTreeNode* _node, char* _prefix, int _prefixLength);
 
 // this list is meant to be sorted by weights of the nodes
 struct huffmanTreeList {
@@ -261,6 +261,42 @@ struct huffmanTree* buildHuffmanTreeFromDistribution(char* _alphabet, int _alpha
     return toReturn;
 }
 
+struct huffmanTree* getEmptyRootHuffmanTree() {
+    struct huffmanTree* toReturn = newHuffmanTree(
+        newHuffmanTreeNode(' ', 0)
+    );
+    return toReturn;
+}
+
+void addEncodedNodeToHuffmanTree(struct huffmanTree* _tree, char _content, char* _prefix, int _prefixLength) {
+    struct huffmanTreeNode* current = _tree -> root;
+    assert(current != NULL, "can't add an encoded node to a rootless tree\n"); // the !=NULL is for the compiler
+
+    // we now iteratively trace down the tree
+    int depth = 0;
+    while (true) {
+        if (depth == _prefixLength) {
+            // this is where the node needs to be inserted
+            current -> content = _content;
+            break;
+        } else {
+            // in this case we need to trace further down the tree and add children if necessary
+            if (_prefix[depth] == '0') {
+                if (!current -> leftChild) {
+                    current -> leftChild = newHuffmanTreeNode(_content, 0);
+                }
+                current = current -> leftChild;
+            } else {
+                if (!current -> rightChild) {
+                    current -> rightChild = newHuffmanTreeNode(_content, 0);
+                }
+                current = current -> rightChild;
+            }
+            depth++;
+        }
+    }
+}
+
 void printHuffmanCodes(struct huffmanTree* _tree) {
     printf("Huffman codes:\n");
     printf("(Begin)\n");
@@ -269,29 +305,29 @@ void printHuffmanCodes(struct huffmanTree* _tree) {
     printf("(End)\n");
 }
 
-static void printHuffmanCodesRecursive(struct huffmanTreeNode* _node, char* _prefix, int _prefixlength) {
-    int isInner = false;
+static void printHuffmanCodesRecursive(struct huffmanTreeNode* _node, char* _prefix, int _prefixLength) {
+    bool isInner = false;
     // if the node has children, call this method on them. their huffman tree prefix derives from the current one.
 
     // technically, if a node has one child then it must have two, but having 2 seperate ifs is more intuitive. my code my rules
     if (_node -> leftChild) {
         isInner = true;
-        char* leftChildPrefix = saferMalloc(sizeof(char) * _prefixlength + 1, "huffman tree prefix");
-        memcpy(leftChildPrefix, _prefix, _prefixlength);
-        leftChildPrefix[_prefixlength] = '0';
-        printHuffmanCodesRecursive(_node -> leftChild, leftChildPrefix, _prefixlength + 1);
+        char* leftChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
+        memcpy(leftChildPrefix, _prefix, _prefixLength);
+        leftChildPrefix[_prefixLength] = '0';
+        printHuffmanCodesRecursive(_node -> leftChild, leftChildPrefix, _prefixLength + 1);
         free(leftChildPrefix);
     }
     if (_node -> rightChild) {
         isInner = true;
-        char* rightChildPrefix = saferMalloc(sizeof(char) * _prefixlength + 1, "huffman tree prefix");
-        memcpy(rightChildPrefix, _prefix, _prefixlength);
-        rightChildPrefix[_prefixlength] = '1';
-        printHuffmanCodesRecursive(_node -> rightChild, rightChildPrefix, _prefixlength + 1);
+        char* rightChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
+        memcpy(rightChildPrefix, _prefix, _prefixLength);
+        rightChildPrefix[_prefixLength] = '1';
+        printHuffmanCodesRecursive(_node -> rightChild, rightChildPrefix, _prefixLength + 1);
         free(rightChildPrefix);
     }
     if (!isInner) {
-        printFromCharArray(_prefix, _prefixlength);
+        printFromCharArray(_prefix, _prefixLength);
         printf(" : %c\n", _node -> content);
     }
 }

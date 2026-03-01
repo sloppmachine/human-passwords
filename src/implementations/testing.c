@@ -6,6 +6,7 @@
 #include <interface/commons.h>
 #include <interface/huffmantree.h>
 #include <interface/preprocessing.h>
+#include <interface/storage.h>
 
 // a checkpoint where we wait for user input
 void returnToProceed() {
@@ -43,6 +44,14 @@ void huffmanTreeWalkthrough(char* placeholder, int placeholderLength, char* lowe
     printf("trying to print the huffman tree's contents.\n");
     printHuffmanCodes(tree);
     printf("you can compare this result with browser-based huffman tree generators.\n");
+    returnToProceed();
+
+    printf("trying to write to test file \"testing/wordpool.bin\"");
+    createWordPoolFile("testing/wordpool.bin", "", tree);
+    returnToProceed();
+
+    printf("trying to read from the same file\n");
+    extractFromWordPool("testing/wordpool.bin", NULL, 0);
 
     printf("finished huffman tree walkthrough.\n");
     returnToProceed();
