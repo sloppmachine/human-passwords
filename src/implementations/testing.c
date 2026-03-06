@@ -1,8 +1,10 @@
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #include <constants/alphanumerics.h>
 
+#include <interface/bitbuffer.h>
 #include <interface/commons.h>
 #include <interface/huffmantree.h>
 #include <interface/preprocessing.h>
@@ -14,49 +16,96 @@ void returnToProceed() {
     fgetc(stdin);
 }
 
-void huffmanTreeWalkthrough(char* placeholder, int placeholderLength, char* lowercaseAlphabet, int alphabetLength) {
+void huffmanTreeWalkthrough(char* _placeholder, int _placeholderLength, char* _lowercaseAlphabet, int _alphabetLength) {
     printf("walking through the process of building a huffman tree.\n");
-    printf("starting with: %s\n", placeholder);
+    printf("starting with: %s\n", _placeholder);
     printf("making lowercase...\n");
-    makeLowercase(placeholder);
-    printf("after making lowercase: %s\n", placeholder);
+    makeLowercase(_placeholder);
+    printf("after making lowercase: %s\n", _placeholder);
     returnToProceed();
 
     // TODO: TEST EMPTY ALPHABET
 
     printf("getting character distribution...\n");
-    int* distribution = getCharacterDistribution(
-        lowercaseAlphabet, alphabetLength, placeholder, placeholderLength
+    int* distribution = getCharacterDistributionFromCharArray(
+        _lowercaseAlphabet, _alphabetLength, _placeholder, _placeholderLength
     );
     printf("printing character distribution...\n");
-    for (int i = 0; i < alphabetLength; i++) {
-        printf("character \'%c\' occurs %i times\n", lowercaseAlphabet[i], distribution[i]);
+    for (int i = 0; i < _alphabetLength; i++) {
+        printf("character \'%c\' occurs %i times\n", _lowercaseAlphabet[i], distribution[i]);
     }
     returnToProceed();
 
     printf("constructing huffman tree...\n");
-    printf("this is the lowercase alphabet %s\n", lowercaseAlphabet);
-    printf("this is the alhabet length: %i\n", alphabetLength);
+    printf("this is the lowercase alphabet %s\n", _lowercaseAlphabet);
+    printf("this is the alhabet length: %i\n", _alphabetLength);
 
-    struct huffmanTree* tree = buildHuffmanTreeFromDistribution(lowercaseAlphabet, alphabetLength, distribution);
+    struct huffmanTree* tree = buildHuffmanTreeFromDistribution(_lowercaseAlphabet, _alphabetLength, distribution);
     returnToProceed();
 
     printf("trying to print the huffman tree's contents.\n");
-    printHuffmanCodes(tree);
+    printHuffmanCodes(tree, _lowercaseAlphabet, _alphabetLength);
     printf("you can compare this result with browser-based huffman tree generators.\n");
     returnToProceed();
 
-    printf("trying to write to test file \"testing/wordpool.bin\"");
-    createWordPoolFile("testing/wordpool.bin", "", tree);
+    free(tree);
+
+}
+
+void fullWalkthrough(char* _sourceName, char* _lowercaseAlphabet, int _alphabetLength, char* _targetName) {
+    printf("trying to extract word distribution from the raw word file %s ...\n", _sourceName);
+
+    FILE* rawWordFile = fopen(_sourceName, "rb");
+    if (rawWordFile) {
+        printf("Successfully opened the word source file...\n");
+    } else {
+        printf("The file %s doesn't seem to exist.\n", _sourceName);
+        exit(EXIT_FAILURE);
+    }
+
+    int* distribution = getCharacterDistributionFromFile(
+        _lowercaseAlphabet, _alphabetLength, rawWordFile
+    );
+    printf("printing character distribution...\n");
+    for (int i = 0; i < _alphabetLength; i++) {
+        char currentCharacter = _lowercaseAlphabet[i];
+        if (currentCharacter == '\n') {
+            printf("character \'\\n\' occurs %i times\n", distribution[i]);
+        } else {
+            printf("character \'%c\' occurs %i times\n", _lowercaseAlphabet[i], distribution[i]);
+        }
+    }
     returnToProceed();
 
-    printf("trying to read from the same file\n");
-    extractFromWordPool("testing/wordpool.bin", NULL, 0);
+    printf("building huffman tree...\n");
+    struct huffmanTree* tree = buildHuffmanTreeFromDistribution(_lowercaseAlphabet, _alphabetLength, distribution);
+    returnToProceed();
+
+    printf("trying to print the huffman tree's contents.\n");
+    printHuffmanCodes(tree, _lowercaseAlphabet, _alphabetLength);
+    printf("you can compare this result with browser-based huffman tree generators.\n");
+    returnToProceed();
+
+    printf("trying to create the word pool binary...\n");
+    FILE* wordPoolFile = fopen(_targetName, "wb");
+    if (rawWordFile) {
+        printf("Successfully opened the target file...\n");
+    } else {
+        printf("The file %s doesn't seem to exist.\n", _targetName);
+        exit(EXIT_FAILURE);
+    }
+    createWordPoolFile(rawWordFile, wordPoolFile, tree);
+    returnToProceed();
+
+    printf("trying to read from the same file...\n");
+    extractFromWordPool("testing/wordpool.bin", _lowercaseAlphabet, _alphabetLength, NULL, 0);
 
     printf("finished huffman tree walkthrough.\n");
     returnToProceed();
-    free(tree);
 
+    free(tree);
+    free(distribution);
+    fclose(rawWordFile);
 }
 
 int main() {
@@ -69,14 +118,14 @@ int main() {
     }
 
     char* lowercaseAlphabet = saferMalloc(sizeof(LOWERCASE_ALPHABET), "lowercase alphabet");
-    int alphabetLength = sizeof(LOWERCASE_ALPHABET) / sizeof(char);
-    for (int i = 0; i < alphabetLength; i++) {
+    for (int i = 0; i < ALPHABET_LENGTH; i++) {
         lowercaseAlphabet[i] = LOWERCASE_ALPHABET[i];
     }
 
     printf("beginning tests.\n");
     returnToProceed();
 
-    huffmanTreeWalkthrough(placeholder, placeholderLength, lowercaseAlphabet, alphabetLength);
+    // huffmanTreeWalkthrough(placeholder, placeholderLength, lowercaseAlphabet, ALPHABET_LENGTH);
+    fullWalkthrough("data/dump.txt", lowercaseAlphabet, ALPHABET_LENGTH, "testing/wordpool.bin");
 
 }

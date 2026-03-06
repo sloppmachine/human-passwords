@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <constants/storagehandling.h>
+
 #include <interface/commons.h>
 #include <interface/huffmantree.h>
 #include <interface/storage.h>
@@ -81,13 +83,14 @@ static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, st
     exit(EXIT_FAILURE);
 }
 
-void createWordPoolFile(char* _fileNameToWrite, char* _wordFileName, struct huffmanTree* _tree) {
-    printf("opening file\n");
-    FILE* fileToWrite = fopen(_fileNameToWrite, "wb");
-    assert(fileToWrite != NULL, "could not open the file."); // the !=NULL is for the compiler not giving a warning
+void createWordPoolFile(FILE* _source, FILE* _target, struct huffmanTree* _tree) {
     printf("attempting to write huffman tree\n");
-    writeHuffmanTreeToFile(fileToWrite, _tree);
-    fclose(fileToWrite);
+    writeHuffmanTreeToFile(_target, _tree);
+
+    /*printf("attempting to write encoded words\n");
+    writeEncodedWordsToFile(_source, _target, _tree);*/
+
+    fclose(_target);
 }
 
 static void extractAndAddHuffmanTreeNodeFromFile(FILE* _file, struct huffmanTree* _tree) {
@@ -116,14 +119,14 @@ static struct huffmanTree* reconstructHuffmanTreeFromFile(FILE* _file) {
     return toReturn;
 }
 
-struct wordList* extractFromWordPool(char* _fileName, int* _seeds, int _seedsLength) {
+struct wordList* extractFromWordPool(char* _fileName, char* _alphabet, int _alphabetSize, int* _seeds, int _seedsLength) {
     printf("opening file\n");
     FILE* fileToRead = fopen(_fileName, "rb");
     assert(fileToRead != NULL, "could not open the file."); // the !=NULL is for the compiler not giving a warning
 
     printf("attempting to read the huffman tree from the file\n");
     struct huffmanTree* tree = reconstructHuffmanTreeFromFile(fileToRead);
-    printHuffmanCodes(tree);
+    printHuffmanCodes(tree, _alphabet, _alphabetSize);
 
     freeHuffmanTree(tree);
     fclose(fileToRead);

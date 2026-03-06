@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <constants/alphanumerics.h>
+
 #include <interface/commons.h>
 #include <interface/huffmantree.h>
 
@@ -31,7 +33,23 @@ static void insertHuffmanTree(struct huffmanTreeList* _list, struct huffmanTree*
 // removes the list entry at a specific index. not its content, the tree!
 static void removeHuffmanTreeAtIndex(struct huffmanTreeList* _list, int _index);
 
-static void printHuffmanCodesRecursive(struct huffmanTreeNode* _node, char* _prefix, int _prefixLength);
+// this is used only by getEncodedAlphabet
+static void getEncodedAlphabetRecursive(
+    struct huffmanTreeNode* _node,
+    char* _alphabet,
+    int _alphabetLength,
+    char** encodedAlphabet, // reference passed down by each function call
+    char* _prefix,
+    int _prefixLength
+);
+
+
+
+
+
+
+
+
 
 // this list is meant to be sorted by weights of the nodes
 struct huffmanTreeList {
@@ -228,7 +246,12 @@ struct huffmanTree* buildHuffmanTreeFromDistribution(char* _alphabet, int _alpha
     struct huffmanTreeListEntry* currentEntry = list -> first;
     while (currentEntry) {
         struct huffmanTreeNode* root = currentEntry -> content -> root;
-        printf(" character %c, weight %i; ", root -> content, root -> weight);
+        char currentCharacter = root -> content;
+        if (currentCharacter == '\n') {
+            printf(" character \'\\n\', weight %i; ", root -> weight);
+        } else {
+            printf(" character %c, weight %i; ", root -> content, root -> weight);
+        }
         currentEntry = currentEntry -> next;
     }
     printf("\n");
@@ -297,15 +320,26 @@ void addEncodedNodeToHuffmanTree(struct huffmanTree* _tree, char _content, char*
     }
 }
 
-void printHuffmanCodes(struct huffmanTree* _tree) {
-    printf("Huffman codes:\n");
-    printf("(Begin)\n");
-    // use a dummy string (consisting only of the terminator) as a prefix for the root
-    printHuffmanCodesRecursive(_tree -> root, "", 0);
-    printf("(End)\n");
+// CONTINUEHERE add documentation - null means no encoding
+char** getEncodedAlphabet(struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
+    printf("ayoooo \n");
+    fflush(stdout);
+    char** toReturn = saferMalloc(sizeof(char*) * _alphabetLength, "array of huffman codes");
+    for (int i = 0; i < _alphabetLength; i++) {
+        toReturn[i] = NULL;
+    }
+    getEncodedAlphabetRecursive(_tree -> root, _alphabet, _alphabetLength, toReturn, "", 0);
+    return toReturn;
 }
 
-static void printHuffmanCodesRecursive(struct huffmanTreeNode* _node, char* _prefix, int _prefixLength) {
+static void getEncodedAlphabetRecursive(
+    struct huffmanTreeNode* _node,
+    char* _alphabet,
+    int _alphabetLength,
+    char** encodedAlphabet, // reference passed down by each function call
+    char* _prefix,
+    int _prefixLength
+) {
     bool isInner = false;
     // if the node has children, call this method on them. their huffman tree prefix derives from the current one.
 
@@ -315,7 +349,7 @@ static void printHuffmanCodesRecursive(struct huffmanTreeNode* _node, char* _pre
         char* leftChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
         memcpy(leftChildPrefix, _prefix, _prefixLength);
         leftChildPrefix[_prefixLength] = '0';
-        printHuffmanCodesRecursive(_node -> leftChild, leftChildPrefix, _prefixLength + 1);
+        getEncodedAlphabetRecursive(_node -> leftChild, _alphabet, _alphabetLength, encodedAlphabet, leftChildPrefix, _prefixLength + 1);
         free(leftChildPrefix);
     }
     if (_node -> rightChild) {
@@ -323,11 +357,30 @@ static void printHuffmanCodesRecursive(struct huffmanTreeNode* _node, char* _pre
         char* rightChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
         memcpy(rightChildPrefix, _prefix, _prefixLength);
         rightChildPrefix[_prefixLength] = '1';
-        printHuffmanCodesRecursive(_node -> rightChild, rightChildPrefix, _prefixLength + 1);
+        getEncodedAlphabetRecursive(_node -> rightChild, _alphabet, _alphabetLength, encodedAlphabet, rightChildPrefix, _prefixLength + 1);
         free(rightChildPrefix);
     }
     if (!isInner) {
-        printFromCharArray(_prefix, _prefixLength);
-        printf(" : %c\n", _node -> content);
+        char* characterAlphabetPointer = strchr(_alphabet, _node -> content);
+        if (!characterAlphabetPointer) {
+            printf("found character %c in huffman tree, this character is not known in the alphabet passed as argument!\n", _node -> content);
+            exit(EXIT_FAILURE);
+        }
+        char* encodingString = saferMalloc(sizeof(char) * (_prefixLength + 1), "huffman encoding string");
+        memcpy(encodingString, _prefix, _prefixLength);
+        encodingString[_prefixLength] = '\0';
+        encodedAlphabet[characterAlphabetPointer - _alphabet] = encodingString;
+    }
+}
+
+void printHuffmanCodes(struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
+    char** codes = getEncodedAlphabet(_tree, _alphabet, _alphabetLength);
+    for (int i = 0; i < ALPHABET_LENGTH; i++) {
+        char* code = codes[i];
+        if (code) {
+            printf("character %c has code %s\n", _alphabet[i], code);
+        } else {
+            printf("character %c has no code\n", _alphabet[i]);
+        }
     }
 }

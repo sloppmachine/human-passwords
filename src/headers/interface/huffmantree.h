@@ -22,5 +22,8 @@ struct huffmanTree* getEmptyRootHuffmanTree();
 // used when reading nodes from a file (in storage.c)
 void addEncodedNodeToHuffmanTree(struct huffmanTree* _tree, char _content, char* _prefix, int _prefixLength);
 
-// prints the huffman codes that a huffman tree symbolizes.
-void printHuffmanCodes(struct huffmanTree* _tree);
+// returns an array of strings of '0' and '1', where the index is alphabetical
+char** getEncodedAlphabet(struct huffmanTree* _tree, char* _alphabet, int _alphabetLength);
+
+// prints the huffman codes that a huffman tree symbolizes. every symbol in the huffman tree must also be in the given alphabet.
+void printHuffmanCodes(struct huffmanTree* _tree, char* _alphabet, int _alphabetLength);

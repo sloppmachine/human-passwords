@@ -7,8 +7,7 @@
 #include <interface/commons.h>
 #include <interface/huffmantree.h>
 #include <interface/preprocessing.h>
-#include <interface/randomtest.h>
 
 int main() {
-    printf("yo whats up\n");
+    printf("testing happening in the other file\n");
 }

@@ -1,38 +1,26 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <constants/alphanumerics.h>
 
 #include <interface/commons.h>
-
-int getUppercaseIndex(char _character) {
-    int i = 0;
-    char c = UPPERCASE_ALPHABET[0]; // starting value
-    while (c != '\0') {
-        c = UPPERCASE_ALPHABET[i];
-        if (c == _character) {
-            return i;
-        }
-        i++;
-    }
-    return -1;
-}
 
 void makeLowercase(char* _input) {
     int i = 0;
     char c = _input[0]; // starting value
     while (c != '\0') {
         c = _input[i];
-        int characterUppercaseIndex = getUppercaseIndex(c);
-        if (characterUppercaseIndex != -1) {
-            _input[i] = LOWERCASE_ALPHABET[characterUppercaseIndex]; // writing to input throws an error
+        char* characterUppercasePointer = strchr(UPPERCASE_ALPHABET, c);
+        if (characterUppercasePointer) {
+            _input[i] = LOWERCASE_ALPHABET[characterUppercasePointer - UPPERCASE_ALPHABET];
         }
         i++;
     }
 }
 
-int* getCharacterDistribution(char* _alphabet, int _alphabetSize, char* _input, int _inputSize) {
+int* getCharacterDistributionFromCharArray(char* _alphabet, int _alphabetSize, char* _input, int _inputSize) {
     // we will do some voodoo to improve the speed here.
     // we will make our own copies of the alphabet, and each time we encounter a character, we swap it with its predecessor
     // this means that over time, common characters will automatically move forward in the alphabet, and can be found quicker
@@ -84,7 +72,7 @@ int* getCharacterDistribution(char* _alphabet, int _alphabetSize, char* _input, 
 
                 // now swap the elements at index i and j in swappableAlphabet and swappableOccurences
                 char tempChar = swappableAlphabet[i];
-                char tempOccurance = swappableOccurences[i];
+                int tempOccurance = swappableOccurences[i];
                 swappableAlphabet[i] = swappableAlphabet[j];
                 swappableAlphabet[j] = tempChar;
                 swappableOccurences[i] = swappableOccurences[j];
@@ -100,6 +88,72 @@ int* getCharacterDistribution(char* _alphabet, int _alphabetSize, char* _input, 
     }
 
     // clean up
+    free(swappableAlphabet);
+
+    return swappableOccurences;
+}
+
+int* getCharacterDistributionFromFile(char* _alphabet, int _alphabetSize, FILE* _input) {
+    // this is functionally just like getCharacterDistributionFromCharArray, therefore no extra comments
+
+    char* swappableAlphabet = saferMalloc(_alphabetSize * sizeof(char), "char array");
+    int* swappableOccurences = saferMalloc(_alphabetSize * sizeof(int), "int array");
+    for (int i = 0; i < _alphabetSize; i++) {
+        swappableAlphabet[i] = _alphabet[i];
+        swappableOccurences[i] = 0;
+    }
+
+    char currentChar;
+    while (true) {
+        currentChar = fgetc(_input);
+        if (currentChar == EOF) {
+            break;
+        }
+
+        for (int currentCharAlphabetIndex = 0; currentCharAlphabetIndex < _alphabetSize; currentCharAlphabetIndex++) {
+            if (swappableAlphabet[currentCharAlphabetIndex] == currentChar) {
+                swappableOccurences[currentCharAlphabetIndex]++;
+                if (currentCharAlphabetIndex) {
+                    char tempChar = swappableAlphabet[currentCharAlphabetIndex - 1];
+                    swappableAlphabet[currentCharAlphabetIndex - 1] = swappableAlphabet[currentCharAlphabetIndex];
+                    swappableAlphabet[currentCharAlphabetIndex] = tempChar;
+                    int tempOccurence = swappableOccurences[currentCharAlphabetIndex - 1];
+                    swappableOccurences[currentCharAlphabetIndex - 1] = swappableOccurences[currentCharAlphabetIndex];
+                    swappableOccurences[currentCharAlphabetIndex] = tempOccurence;
+                }
+            }
+        }
+    }
+
+    while (true) {
+        int somethingChanged = false;
+
+        for (int i = 0; i < _alphabetSize; i++) {
+            if (_alphabet[i] != swappableAlphabet[i]) {
+                int j = i + 1;
+                while (j < _alphabetSize) {
+                    if (_alphabet[i] == swappableAlphabet[j]) {
+                        break;
+                    }
+                    j++;
+                }
+
+                char tempChar = swappableAlphabet[i];
+                int tempOccurance = swappableOccurences[i];
+                swappableAlphabet[i] = swappableAlphabet[j];
+                swappableAlphabet[j] = tempChar;
+                swappableOccurences[i] = swappableOccurences[j];
+                swappableOccurences[j] = tempOccurance;
+
+                somethingChanged = true;
+            }
+        }
+
+        if (!somethingChanged) {
+            break;
+        }
+    }
+
     free(swappableAlphabet);
 
     return swappableOccurences;
