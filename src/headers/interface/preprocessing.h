@@ -5,3 +5,5 @@ int* getCharacterDistributionFromCharArray(char* _alphabet, int _alphabetSize, c
 
 // this is just the equivalent of getCharacterDistributionFromCharArray for a file.
 int* getCharacterDistributionFromFile(char* _alphabet, int _alphabetSize, FILE* _input);
+
+void printCharacterDistribution(int* _distribution, char* _alphabet, int _alphabetLength);

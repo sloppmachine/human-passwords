@@ -11,6 +11,7 @@ static char flushSingleBit(struct bitBuffer* _bitBuffer);
 
 struct bitBuffer* newBitBuffer() {
     struct bitBuffer* toReturn = saferMalloc(sizeof(struct bitBuffer), "bitBuffer");
+    toReturn -> first = NULL;
     return toReturn;
 }
 
@@ -27,6 +28,7 @@ void freeBitBuffer(struct bitBuffer* _bitBuffer) {
 static struct bitBufferElement* newBitBufferElement(bool _content) {
     struct bitBufferElement* toReturn = saferMalloc(sizeof(struct bitBufferElement), "bitBufferElement");
     toReturn -> content = _content;
+    toReturn -> next = NULL;
     return toReturn;
 }
 
@@ -35,7 +37,7 @@ int getBitBufferSize(struct bitBuffer* _bitBuffer) {
     struct bitBufferElement* current = _bitBuffer -> first;
     while (current) {
         toReturn++;
-        current -> next;
+        current = current -> next;
     }
     return toReturn;
 }
@@ -51,6 +53,16 @@ void addBit(struct bitBuffer* _bitBuffer, bool _bit) {
         last -> next = toInsert;
     } else {
         _bitBuffer -> first = toInsert;
+    }
+}
+
+void addByte(struct bitBuffer* _bitBuffer, unsigned char _byte) {
+    //printf("in addByte, got byte %i\n", _byte);
+    for (int i = 0; i < 8; i++) {
+        addBit(_bitBuffer, _byte & 0x80); // this is the case iff the first bit is 1
+        //printf("is bigger equals 128?: %i\n", _byte >= 128);
+        _byte = _byte << 1;
+        //printf("after shift: %i\n", _byte);
     }
 }
 
@@ -71,13 +83,84 @@ static char flushSingleBit(struct bitBuffer* _bitBuffer) {
     }
 }
 
+unsigned char flushSingleByte(struct bitBuffer* _bitBuffer) {
+    /*printf("YO CURRENT BITBUFFER STATE: ");
+    struct bitBufferElement* current = _bitBuffer -> first;
+    while (current) {
+        if (current -> content) {
+            printf("1");
+        } else {
+            printf("0");
+        }
+        current = current -> next;
+    }
+    printf("\n");*/
+    //exit(EXIT_FAILURE);
 
-char flushSingleByte(struct bitBuffer* _bitBuffer) {
-    char toReturn = 0;
-    // read a bit, then shift left.
+
+    unsigned char toReturn = 0;
+    // read a bit, then shift left. the most significant bits should be those that appeared first in the bit buffer
     for (int i = 0; i < 8; i++) {
+        toReturn = toReturn << 1;
         toReturn += flushSingleBit(_bitBuffer);
-        toReturn << 1;
     }
     return toReturn;
+}
+
+int flushEncodedCharacter(struct bitBuffer* _bitBuffer, char** _encodings, int _alphabetLength) {
+    /*printf("YO CURRENT BITBUFFER STATE: ");
+    struct bitBufferElement* current = _bitBuffer -> first;
+    while (current) {
+        if (current -> content) {
+            printf("1");
+        } else {
+            printf("0");
+        }
+        current = current -> next;
+    }
+    printf("\n");*/
+    //exit(EXIT_FAILURE);
+
+
+    // the beginning of the bit buffer may only hold up to one encoding. there is no ambiguity
+    for (int currentEncodingIndex = 0; currentEncodingIndex < _alphabetLength; currentEncodingIndex++) {
+        char* encoding = _encodings[currentEncodingIndex];
+        // check if the encoding matches the beginning of the bitbuffer (compare the two).
+        // the matching is successful if we reach the null terminator of the encoding before the bit buffer ends or holds different values than the encoding
+        bool isEncodingMatched = true;
+
+        int currentIndexInEncoding = 0;
+        struct bitBufferElement* currentBitBufferElement = _bitBuffer -> first;
+        while (true) {
+            char currentEncodingChar = encoding[currentIndexInEncoding];
+            if (currentEncodingChar == '\0') {
+                // the encoding has ended and been matched successfully
+                break;
+            }
+            if (!currentBitBufferElement) {
+                // the bit buffer ended before the encoding could be matched
+                isEncodingMatched = false;
+                break;
+            } else {
+                bool currentEncodingBit = !(currentEncodingChar == '0'); // convert '0' and '1' to "booleans" (zero and nonzero ints)
+                bool currentBitBufferBit = currentBitBufferElement -> content;
+                // if the encoding does not match with the bit in the bitbuffer, the matching fails
+                if (!currentEncodingBit && currentBitBufferBit || currentEncodingBit && !currentBitBufferBit) {
+                    isEncodingMatched = false;
+                    break;
+                }
+            }
+            currentIndexInEncoding++;
+            currentBitBufferElement = currentBitBufferElement -> next;
+        }
+        if (isEncodingMatched) {
+            //printf("seems we matched an encoding, character index %i, encoding %s \n", currentEncodingIndex, encoding);
+            // actually flush all bits (currentIndexInEncoding is the amount of bits to flush)
+            for (int i = 0; i < currentIndexInEncoding; i++) {
+                flushSingleBit(_bitBuffer);
+            }
+            return currentEncodingIndex;
+        }
+    }
+    return -1;
 }

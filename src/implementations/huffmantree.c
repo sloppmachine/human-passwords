@@ -322,8 +322,6 @@ void addEncodedNodeToHuffmanTree(struct huffmanTree* _tree, char _content, char*
 
 // CONTINUEHERE add documentation - null means no encoding
 char** getEncodedAlphabet(struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
-    printf("ayoooo \n");
-    fflush(stdout);
     char** toReturn = saferMalloc(sizeof(char*) * _alphabetLength, "array of huffman codes");
     for (int i = 0; i < _alphabetLength; i++) {
         toReturn[i] = NULL;
@@ -378,7 +376,11 @@ void printHuffmanCodes(struct huffmanTree* _tree, char* _alphabet, int _alphabet
     for (int i = 0; i < ALPHABET_LENGTH; i++) {
         char* code = codes[i];
         if (code) {
-            printf("character %c has code %s\n", _alphabet[i], code);
+            if (_alphabet[i] == '\n') {
+                printf("character \'\\n\' has code %s\n", code);
+            } else {
+                printf("character %c has code %s\n", _alphabet[i], code);
+            }
         } else {
             printf("character %c has no code\n", _alphabet[i]);
         }

@@ -94,18 +94,24 @@ void fullWalkthrough(char* _sourceName, char* _lowercaseAlphabet, int _alphabetL
         printf("The file %s doesn't seem to exist.\n", _targetName);
         exit(EXIT_FAILURE);
     }
-    createWordPoolFile(rawWordFile, wordPoolFile, tree);
+    buildWordPoolFile(rawWordFile, wordPoolFile, tree, _lowercaseAlphabet, _alphabetLength);
     returnToProceed();
 
+    fclose(rawWordFile);
+
     printf("trying to read from the same file...\n");
-    extractFromWordPool("testing/wordpool.bin", _lowercaseAlphabet, _alphabetLength, NULL, 0);
+    FILE* fileToRead = fopen(_targetName, "rb");
+    assert(fileToRead != NULL, "could not open the file."); // the !=NULL is for the compiler not giving a warning
+
+    extractFromWordPool(fileToRead, _lowercaseAlphabet, _alphabetLength, NULL, 0, true);
+
+    fclose(fileToRead);
 
     printf("finished huffman tree walkthrough.\n");
     returnToProceed();
 
     free(tree);
     free(distribution);
-    fclose(rawWordFile);
 }
 
 int main() {

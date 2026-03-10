@@ -5,6 +5,7 @@
 
 #include <constants/storagehandling.h>
 
+#include <interface/bitbuffer.h>
 #include <interface/commons.h>
 #include <interface/huffmantree.h>
 #include <interface/storage.h>
@@ -19,7 +20,7 @@ static void writeHuffmanTreeNodesToFile(FILE* _fileToWrite, struct huffmanTreeNo
 static void writeHuffmanTreeToFile(FILE* _fileToWrite, struct huffmanTree* _tree);
 
 // encodes words and writes them into a file
-static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, struct huffmanTree* _tree);
+static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, struct huffmanTree* _tree, char* _alphabet, int _alphabetSize);
 
 // builds a node into a tree from its code
 static void extractAndAddHuffmanTreeNodeFromFile(FILE* _file, struct huffmanTree* _tree);
@@ -78,19 +79,85 @@ static void writeHuffmanTreeToFile(FILE* _fileToWrite, struct huffmanTree* _tree
     fseek(_fileToWrite, finalPosition, SEEK_SET);
 }
 
-static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, struct huffmanTree* _tree) {
-    printf("not yet implemented\n");
-    exit(EXIT_FAILURE);
+static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
+    // generate the encodings from the tree and ready the bit buffer
+    char** codes = getEncodedAlphabet(_tree, _alphabet, _alphabetLength);
+    struct bitBuffer* bitBuffer = newBitBuffer();
+
+    // the first byte will store how many bits of the final byte were used
+    int finalBitCountBytePosition = ftell(_fileToWrite);
+    fputc('\0', _fileToWrite);
+
+    char characterToEncode;
+    char* characterToEncodeAlphabetPointer;
+    int characterToEncodeAlphabetIndex;
+    int charactersEncodedSinceLastFlush = 0;
+    // encode character by character, first into the bit buffer then into the file
+    while (true) {
+        characterToEncode = fgetc(_wordsToEncode);
+
+        if (characterToEncode == EOF) {
+            break;
+        }
+
+        characterToEncodeAlphabetPointer = strchr(_alphabet, characterToEncode);
+        if (!characterToEncodeAlphabetPointer) {
+            printf("The word file contains the character %c which is not part of the alphabet provided: \n", characterToEncode);
+            printFromCharArray(_alphabet, _alphabetLength);
+            exit(EXIT_FAILURE);
+        }
+
+        characterToEncodeAlphabetIndex = characterToEncodeAlphabetPointer - _alphabet;
+
+        char* encoding = codes[characterToEncodeAlphabetIndex];
+        int i = 0;
+        char currentEncodingChar;
+        while (true) {
+            currentEncodingChar = encoding[i];
+            if (currentEncodingChar == '\0') {
+                break;
+            }
+            if (currentEncodingChar == '0') {
+                addBit(bitBuffer, false);
+            } else {
+                addBit(bitBuffer, true);
+            }
+            i++;
+        }
+
+        // after a specific amount of characters have been encoded, flush the buffer as long as possible without breaking whole bytes
+        charactersEncodedSinceLastFlush++;
+        if (charactersEncodedSinceLastFlush >= CHARACTERS_TO_ENCODE_PER_FLUSH) {
+            while (getBitBufferSize(bitBuffer) >= 8) {
+                //printf("entering while loop\n");
+                unsigned char flushedByte = flushSingleByte(bitBuffer);
+                //printf("flushed this: %i\n", flushedByte);
+                fflush(stdout);
+                fputc(flushedByte, _fileToWrite);
+            }
+            charactersEncodedSinceLastFlush = 0;
+        }
+
+    }
+
+    // at this point the final complete byte has already been flushed, so we can just directly write the buffer size to the reserved byte
+    int currentWritingPoint = ftell(_fileToWrite);
+    fseek(_fileToWrite, finalBitCountBytePosition, SEEK_SET);
+    fputc(getBitBufferSize(bitBuffer), _fileToWrite);
+    printf("remaining bit buffer size %i\n", getBitBufferSize(bitBuffer));
+    fseek(_fileToWrite, currentWritingPoint, SEEK_SET);
+    fputc(flushSingleByte(bitBuffer), _fileToWrite);
+    
+    free(codes);
+    free(bitBuffer);
 }
 
-void createWordPoolFile(FILE* _source, FILE* _target, struct huffmanTree* _tree) {
+void buildWordPoolFile(FILE* _source, FILE* _target, struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
     printf("attempting to write huffman tree\n");
     writeHuffmanTreeToFile(_target, _tree);
 
-    /*printf("attempting to write encoded words\n");
-    writeEncodedWordsToFile(_source, _target, _tree);*/
-
-    fclose(_target);
+    printf("attempting to write encoded words\n");
+    writeEncodedWordsToFile(_source, _target, _tree, _alphabet, _alphabetLength);
 }
 
 static void extractAndAddHuffmanTreeNodeFromFile(FILE* _file, struct huffmanTree* _tree) {
@@ -119,15 +186,109 @@ static struct huffmanTree* reconstructHuffmanTreeFromFile(FILE* _file) {
     return toReturn;
 }
 
-struct wordList* extractFromWordPool(char* _fileName, char* _alphabet, int _alphabetSize, int* _seeds, int _seedsLength) {
-    printf("opening file\n");
-    FILE* fileToRead = fopen(_fileName, "rb");
-    assert(fileToRead != NULL, "could not open the file."); // the !=NULL is for the compiler not giving a warning
+void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphabetLength, bool verbose) {
+    printIfVerbose(verbose, "Reconstructing  huffman tree from file...\n");
+    struct huffmanTree* tree = reconstructHuffmanTreeFromFile(source);
+    if (verbose) {
+        printHuffmanCodes(tree, _alphabet, _alphabetLength);
+    }
+    char** huffmanCodes = getEncodedAlphabet(tree, _alphabet, _alphabetLength);
 
-    printf("attempting to read the huffman tree from the file\n");
-    struct huffmanTree* tree = reconstructHuffmanTreeFromFile(fileToRead);
-    printHuffmanCodes(tree, _alphabet, _alphabetSize);
+    // find the length of the longest code
+    int longestCode = 0;
+    for (int currentCodeIndex = 0; currentCodeIndex < _alphabetLength; currentCodeIndex++) {
+        char* currentCode = huffmanCodes[currentCodeIndex];
+        int currentIndexInCode = 0;
+        while (true) {
+            if (currentCode[currentIndexInCode] == '\0') {
+                if (currentIndexInCode > longestCode) {
+                    longestCode = currentIndexInCode;
+                }
+                break;
+            } else {
+                currentIndexInCode++;
+            }
+        }
+    }
+
+    printIfVerbose(verbose, "Decoding the binary's word pool...\n");
+
+    // the next byte represents the amount of bits in the last byte that are of relevance
+    char finalBitCount = fgetc(source);
+
+    // read bytes from the encoded word stream. the last byte has a special meaning, so we need to read "a byte ahead" to see the EOF in time
+    int currentChar = 0;
+    int nextChar = fgetc(source);
+
+    // special case: the first character read is EOF
+    if (nextChar == EOF) {
+        printIfVerbose(verbose, "The binary's word pool is empty.");
+    } else {
+        currentChar = nextChar;
+        nextChar = fgetc(source);
+    }
+
+    struct bitBuffer* bitBuffer = newBitBuffer();
+    int bytesReadSinceLastFlush = 0;
+    while (true) {
+        // check whether we have reached the final byte
+        if (nextChar == EOF) {
+            // of the final byte, we only need the finalBitCount most significant byte
+            for (int i = 0; i < finalBitCount; i++) {
+                addBit(bitBuffer, currentChar >= 128);
+                currentChar = (currentChar << 1) % 256; // reduce it to 8 bits
+            }
+
+            // do the final flush of the bitbuffer
+            while (true) {
+
+                if (getBitBufferSize(bitBuffer) == 0) {
+                    break;
+                }
+                int flushedCharacterIndex = flushEncodedCharacter(bitBuffer, huffmanCodes, _alphabetLength);
+                if (flushedCharacterIndex == -1) {
+                    printf("Error: the word pool in the binary is malformed.\n");
+                    exit(EXIT_FAILURE);
+                }
+                fputc(_alphabet[flushedCharacterIndex], target);
+            }
+            break;
+        }
+        
+        // add the current character into the buffer
+        addByte(bitBuffer, currentChar);
+        bytesReadSinceLastFlush++;
+
+        // flush the bit buffer if necessary
+        if (bytesReadSinceLastFlush >= BYTES_TO_READ_PER_FLUSH) {
+            // decode characters from the buffer as long as a complete encoded character is guaranteed to be there (else the encoding must somehow be corrupted)
+            // this is the case if the bit buffer is at least as long as the longest encoding
+            while (getBitBufferSize(bitBuffer) >= longestCode) {
+                int indexOfEncodedChar = flushEncodedCharacter(bitBuffer, huffmanCodes, _alphabetLength);
+                if (indexOfEncodedChar == -1) {
+                    printf("Error: the word pool in the binary is malformed.\n");
+                    exit(EXIT_FAILURE);
+                }
+                fputc(_alphabet[indexOfEncodedChar], target);
+            }
+            bytesReadSinceLastFlush = 0;
+        }
+
+        // prepare the next iteration
+        currentChar = nextChar;
+        nextChar = fgetc(source);
+    }
+
+}
+
+
+struct wordList* extractFromWordPool(FILE* source, char* _alphabet, int _alphabetLength, int* _seeds, int _seedsLength, bool verbose) {
+    printIfVerbose(verbose, "Reconstructing  huffman tree from file...\n");
+    struct huffmanTree* tree = reconstructHuffmanTreeFromFile(source);
+    printHuffmanCodes(tree, _alphabet, _alphabetLength);
+
+    printf("not yet implemented\n");
+    exit(EXIT_FAILURE);
 
     freeHuffmanTree(tree);
-    fclose(fileToRead);
 }

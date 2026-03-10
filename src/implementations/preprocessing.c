@@ -95,6 +95,8 @@ int* getCharacterDistributionFromCharArray(char* _alphabet, int _alphabetSize, c
 
 int* getCharacterDistributionFromFile(char* _alphabet, int _alphabetSize, FILE* _input) {
     // this is functionally just like getCharacterDistributionFromCharArray, therefore no extra comments
+    // we need to additionally keep track of the file pointer
+    int startingPosition = ftell(_input);
 
     char* swappableAlphabet = saferMalloc(_alphabetSize * sizeof(char), "char array");
     int* swappableOccurences = saferMalloc(_alphabetSize * sizeof(int), "int array");
@@ -155,6 +157,18 @@ int* getCharacterDistributionFromFile(char* _alphabet, int _alphabetSize, FILE* 
     }
 
     free(swappableAlphabet);
+    fseek(_input, startingPosition, SEEK_SET);
 
     return swappableOccurences;
+}
+
+void printCharacterDistribution(int* _distribution, char* _alphabet, int _alphabetLength) {
+    for (int i = 0; i < _alphabetLength; i++) {
+        char currentCharacter = _alphabet[i];
+        if (currentCharacter == '\n') {
+            printf("character \'\\n\' occurs %i times\n", _distribution[i]);
+        } else {
+            printf("character \'%c\' occurs %i times\n", _alphabet[i], _distribution[i]);
+        }
+    }
 }

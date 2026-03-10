@@ -1,3 +1,6 @@
+// this can replace a normal printf, and a semicolon naturally follows after: https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
+#define printIfVerbose(_verbose, _text, ...) if (_verbose) printf(_text, ##__VA_ARGS__)
+
 // this structure is just for saving a list of words pulled from pool
 struct wordList {
     char** pointers;
