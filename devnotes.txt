@@ -2,25 +2,19 @@ Notes for development:
 
 mention the format of the input word list
 
-unified error message concept
-
-implement unified error handling for reading from binary files (including notices like that the file exists but is corrupted)
-
 consider refactoring, to have the alphabet be null terminated too (eliminating fields like "alphabetLength")
-
-verify complete documentation of code
 
 use [] instead of * always when null-terminated?
 
 replace char with uint8 (this includes variable names)
 
-replace all commented out lines during debug
-
 verify reading as type with mroe than 8 bits when reading from file
+
+check error cases when reading from binary files
 
 reduce "magic strings"
 
-consider using more keywords like const?
+consider using more keywords like const, enum?
 
 mention keeping sizeof(char) even though c standard thing
 
@@ -30,7 +24,14 @@ mention long int is used when >=32bits reasonable
 
 implement better sorting in seedsToFind for extra large bulk password generation
 
-verify verbose printings exist
+use wording "passphrase"
+
+remove CONTINUEHEREs
+
+
+
+
+Error message format: "Error: (description)" -> immediate exit
 
 save file structure:
 - 4 bytes: amount of words contained in the pool 

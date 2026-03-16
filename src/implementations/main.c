@@ -31,7 +31,7 @@ void verifyRequiredArgument(char* _argument, char* _optionName) {
         wasArgumentProvided = false;
     }
     if (!wasArgumentProvided) {
-        printf("The option %s is required.\n", _optionName);
+        printf("Error: the option %s is required.\n", _optionName);
         exit(EXIT_FAILURE);
     }
 }
@@ -164,6 +164,7 @@ int main(int argc, char** argv) {
     // declare file pointers beforehand; multiple declarations in different switch cases are illegal
     FILE* sourceFile;
     FILE* targetFile;
+
     // decide action to take
     switch (mode) {
         case MODE_DEFAULT:
@@ -184,7 +185,7 @@ int main(int argc, char** argv) {
             verifyRequiredArgument(sourceFileName, "--source=<raw word file>");
             verifyRequiredArgument(targetFileName, "--target=<target binary file name>");
             
-            printIfVerbose(verbose, "Building binary from raw word list with verbose setting\n");
+            printIfVerbose(verbose, "Building binary from raw word list with verbose setting.\n");
 
             sourceFile = openSourceFile(verbose, sourceFileName);
 
@@ -192,20 +193,14 @@ int main(int argc, char** argv) {
             int* distribution = getCharacterDistributionFromFile(
                 lowercaseAlphabet, ALPHABET_LENGTH, sourceFile
             );
-            if (verbose) {
-                printCharacterDistribution(distribution, lowercaseAlphabet, ALPHABET_LENGTH);
-            }
             
             printIfVerbose(verbose, "Building huffman tree...\n");
             struct huffmanTree* tree = buildHuffmanTreeFromDistribution(lowercaseAlphabet, ALPHABET_LENGTH, distribution);
-            if (verbose) {
-                printHuffmanCodes(tree, lowercaseAlphabet, ALPHABET_LENGTH);
-            }
 
             targetFile = openTargetFile(verbose, targetFileName);
 
             printIfVerbose(verbose, "Writing binary...\n");
-            buildWordPoolFile(sourceFile, targetFile, tree, lowercaseAlphabet, ALPHABET_LENGTH);
+            buildWordPoolFile(sourceFile, targetFile, tree, lowercaseAlphabet, ALPHABET_LENGTH, verbose);
 
             printIfVerbose(verbose, "Cleaning up...\n");
             fclose(sourceFile);
@@ -222,13 +217,16 @@ int main(int argc, char** argv) {
             verifyRequiredArgument(sourceFileName, "--source=<raw word file>");
             verifyRequiredArgument(targetFileName, "--target=<target binary file name>");
 
-            printIfVerbose(verbose, "Restoring raw word list from binary with verbose setting\n");
+            printIfVerbose(verbose, "Restoring raw word list from binary with verbose setting.\n");
 
             sourceFile = openSourceFile(verbose, sourceFileName);
             targetFile = openTargetFile(verbose, targetFileName);
 
             restoreRawWordList(sourceFile, targetFile, lowercaseAlphabet, ALPHABET_LENGTH, verbose);
-            
+
+            printIfVerbose(verbose, "Cleaning up...\n");
+            fclose(sourceFile);
+            fclose(targetFile);
             break;
         case MODE_EXTRACT:
             if (help) {
@@ -239,37 +237,21 @@ int main(int argc, char** argv) {
             verifyRequiredArgument(sourceFileName, "--source=<raw word file>");
             verifyRequiredArgument(targetFileName, "--target=<target binary file name>");
             verifyRequiredArgument(amountInput, "--amount=<amount of passwords>x<words per password>");
-            
-            printf("got source %s target %s amount input %s seperator %s \n", sourceFileName, targetFileName, amountInput, separator);
-
             struct amount* amount = processAmountArgument(amountInput);
-            printf("got following to amount: %i %i\n", amount -> amoutOfPasswords, amount -> wordsPerPassword);
+
+            printIfVerbose(verbose, "Extracting passphrase from binary with verbose setting.\n");
             
             sourceFile = openSourceFile(verbose, sourceFileName);
             targetFile = openTargetFile(verbose, targetFileName);
 
-            printIfVerbose(verbose, "getting size of word pool...\n");
+            printIfVerbose(verbose, "Generating random seeds...\n");
             unsigned int wordPoolSize = getWordPoolSize(sourceFile);
-
-            printIfVerbose(verbose, "generating random seeds...\n");
             int** seedArray = generateSeedArray(amount, wordPoolSize);
 
-            for (int layer1 = 0; layer1 < amount -> amoutOfPasswords; layer1++) {
-                for (int layer2 = 0; layer2 < amount -> wordsPerPassword; layer2++) {
-                    printf("%i %i %u\n", layer1, layer2, seedArray[layer1][layer2]);
-                }
-            }
-
-            printIfVerbose(verbose, "generating sorted seed list for retrieval...\n");
+            printIfVerbose(verbose, "Generating sorted seed list for retrieval...\n");
             struct seedsToFind* seedsToFind = getSeedsToFind(seedArray, amount);
-            
-            printf("list length %i contents ", seedsToFind -> amount);
-            for (int i = 0; i < seedsToFind -> amount; i++) {
-                printf("%i; ", seedsToFind -> sortedArray[i]);
-            }
-            printf("\n");
 
-            printIfVerbose(verbose, "translating seeds to words...\n");
+            printIfVerbose(verbose, "Translating seeds using the binary...\n");
             struct translatedSeedList* translatedSeedList = translateSeedListWithWordPool(
                 sourceFile,
                 seedsToFind,
@@ -278,14 +260,15 @@ int main(int argc, char** argv) {
                 verbose
             );
 
-            printIfVerbose(verbose, "writing passwords to file...\n");
+            printIfVerbose(verbose, "Writing passphrases to file...\n");
 
             writeTranslatedSeedsToFile(targetFile, seedArray, amount, translatedSeedList, separator, verbose);
 
-            printIfVerbose(verbose, "cleaning up...\n");
-
+            printIfVerbose(verbose, "Cleaning up...\n");
             freeSeedArray(seedArray, amount -> amoutOfPasswords);
             free(amount);
+            fclose(sourceFile);
+            fclose(targetFile);
             break;
     }
 

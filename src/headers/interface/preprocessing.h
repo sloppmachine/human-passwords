@@ -1,3 +1,5 @@
+// these loosely connected methods are used mainly for preprocessing strings.
+
 // returns true if all characters of the string are digits or it is empty
 bool isStringDigit(char* _string);
 

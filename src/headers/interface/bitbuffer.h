@@ -1,3 +1,5 @@
+// a bitbuffer is a structure used to temporarily store single bits when they are only needed in batches
+
 // a structure to buffer single bits that can be flushed out as complete bytes, or as huffman codes
 struct bitBuffer {
     struct bitBufferElement* first;

@@ -4,7 +4,7 @@
 void* saferMalloc(int _size, char* _objectDescription) {
     void* toReturn = malloc(_size);
     if (toReturn == NULL) {
-        printf("Fatal error: failed to allocate object of type \"%s\".\n", _objectDescription);
+        printf("Error: failed to allocate object of type \"%s\".\n", _objectDescription);
         exit(EXIT_FAILURE);
     }
     return toReturn;
@@ -12,7 +12,7 @@ void* saferMalloc(int _size, char* _objectDescription) {
 
 void assert(int _expression, char* _errorDescription) {
     if (!_expression) {
-        printf("Fatal error: %s\n", _errorDescription);
+        printf("Error: %s\n", _errorDescription);
         exit(EXIT_FAILURE);
     }
 }

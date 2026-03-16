@@ -1,3 +1,5 @@
+// huffman trees are a structure used to encode and compress textual data: https://en.wikipedia.org/wiki/Huffman_coding
+
 struct huffmanTree {
     struct huffmanTreeNode* root;
     int totalWeight; // the total weight of all the nodes contained within, stored here again so that it does not need to be calculated over and over.

@@ -43,14 +43,6 @@ static void getEncodedAlphabetRecursive(
     int _prefixLength
 );
 
-
-
-
-
-
-
-
-
 // this list is meant to be sorted by weights of the nodes
 struct huffmanTreeList {
     struct huffmanTreeListEntry* first;
@@ -137,7 +129,6 @@ static int getHuffmanTreeListLength(struct huffmanTreeList* _huffmanTreeList) {
 }
 
 static void insertHuffmanTree(struct huffmanTreeList* _list, struct huffmanTree* _tree) {
-    //printf("the length of the list before inserting is %i\n", getHuffmanTreeListLength(_list));
     // since our trees work on 8-bit characters, there's no need to do it this way for performance. we could also just keep them
     // unsorted and pick them out in linear time. i just like this solution
 
@@ -155,7 +146,6 @@ static void insertHuffmanTree(struct huffmanTreeList* _list, struct huffmanTree*
             // if the weight to insert is smaller than the weight of the first tree, then we must insert it at the beginning
             newEntry -> next = _list -> first;
             _list -> first = newEntry;
-            //printf("inserted %c (%i) at the beginning of list\n", newEntry -> content -> root -> content, newEntry -> content -> totalWeight);
         } else {
             // else we can iterate over the tree and always compare it to the entry after the current one.
             struct huffmanTreeListEntry* current = _list -> first;
@@ -165,7 +155,6 @@ static void insertHuffmanTree(struct huffmanTreeList* _list, struct huffmanTree*
                         // if the next tree has a higher weight, we need to insert the new tree in between the current one and the next one
                         newEntry -> next = current -> next;
                         current -> next = newEntry;
-                        //printf("inserted %c (%i) after %c\n", newEntry -> content -> root -> content, newEntry -> content -> totalWeight, current -> next -> content -> root -> content);
                         break;
                     } else {
                         current = current -> next;
@@ -173,16 +162,13 @@ static void insertHuffmanTree(struct huffmanTreeList* _list, struct huffmanTree*
                 } else {
                     // in this case we have reached the end of the list and can just insert the tree.
                     current -> next = newEntry;
-                    //printf("inserted %c (%i) at the end of list\n", newEntry -> content -> root -> content, newEntry -> content -> totalWeight);
                     break;
                 }
             }
         }
     } else {
-        //printf("inserted %c (%i) as the first entry of the list\n", newEntry -> content -> root -> content, newEntry -> content -> totalWeight);
         _list -> first = newEntry;
     }
-    //printf("the length of the list after inserting is %i\n", getHuffmanTreeListLength(_list));
 }
 
 static void removeHuffmanTreeAtIndex(struct huffmanTreeList* _list, int _index) {
@@ -229,7 +215,6 @@ struct huffmanTree* buildHuffmanTreeFromDistribution(char* _alphabet, int _alpha
     for (int characterIndex = 0; characterIndex < _alphabetSize; characterIndex++) {
         // ignore the string terminator
         if (_alphabet[characterIndex] != '\0') {
-            //printf("trying to insert %c into list...\n", _alphabet[characterIndex]);
             insertHuffmanTree(
                 list,
                 newHuffmanTree(
@@ -242,26 +227,11 @@ struct huffmanTree* buildHuffmanTreeFromDistribution(char* _alphabet, int _alpha
         }
     }
 
-    printf("these are the huffman trees currently in the list \n");
-    struct huffmanTreeListEntry* currentEntry = list -> first;
-    while (currentEntry) {
-        struct huffmanTreeNode* root = currentEntry -> content -> root;
-        char currentCharacter = root -> content;
-        if (currentCharacter == '\n') {
-            printf(" character \'\\n\', weight %i; ", root -> weight);
-        } else {
-            printf(" character %c, weight %i; ", root -> content, root -> weight);
-        }
-        currentEntry = currentEntry -> next;
-    }
-    printf("\n");
-
-    // merge the tow trees with the least weight together until only one tree is left.
+    // merge the two trees with the least weight together until only one tree is left.
     while (getHuffmanTreeListLength(list) >= 2) {
         struct huffmanTreeListEntry* firstTreeListEntry = list -> first;
         struct huffmanTreeListEntry* secondTreeListEntry = firstTreeListEntry -> next;
         
-        //printf("the list length is currently %i, will now remove an entry\n", getHuffmanTreeListLength(list));
         if (secondTreeListEntry) {
             // extract the trees from the first two list entries, then remove the first two list entries from the list.
             struct huffmanTree* firstTree = firstTreeListEntry -> content;
@@ -361,7 +331,7 @@ static void getEncodedAlphabetRecursive(
     if (!isInner) {
         char* characterAlphabetPointer = strchr(_alphabet, _node -> content);
         if (!characterAlphabetPointer) {
-            printf("found character %c in huffman tree, this character is not known in the alphabet passed as argument!\n", _node -> content);
+            printf("Error: Found character %c in huffman tree, this character is not known to this function.\n", _node -> content);
             exit(EXIT_FAILURE);
         }
         char* encodingString = saferMalloc(sizeof(char) * (_prefixLength + 1), "huffman encoding string");

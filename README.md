@@ -1,4 +1,25 @@
 # (WIP) Human passwords
-I suck at remembering random information. Whenever i type a new password that is made up of random characters, I need to check the password every few characters. For fun and curiosity, i want to make this tool to generate passwords from english words - perhaps they will be easier/funner to type and fun to remember.
+I suck at remembering random information, like random passwords. For fun and curiosity, i made this tool to generate passphrases from an arbitrary given word pool (for example, containing the english language).
 
-At this point, the project is just a collection of related functionality that has not been assembled into a working product. Once the enough components are assembled and use is possible, this is where the documentation will be.
+## Building
+Presuming you have gcc installed, you can just run `make` in the parent directory of the repository. The executable will appear in a new folder `bin/executable/human-passwords`. Otherwise, you can open and edit the makefile to use your compiler and flags of your choice. Everything needed for compiling and and linking is in the `src/` directory.
+
+## How to use
+
+For general directions and help for specific commands, you can always use `-h` or `--help` in the command line.
+
+Generating passphrases follows 2 steps: first, you need a word pool in the form of a plain text file, where every word is separated by a newline character. For the purpose of testing, i used [this](https://github.com/sloppmachine/wiktionary-extractor).
+
+```human-passwords build --source=dump.txt --target=wordpool.bin```
+
+Then, after having generated a file called `wordpool.bin`, you can exract passwords like:
+
+```human-passwords extract --source=wordpoolbin --target=passwords.txt --amount=10x10```
+
+You can also use a mode called `restore`, which restores the original plain text word pool from the compressed binary.
+
+## Source code documentation
+For a summary on project structure, see [conventions.md](conventions.md).
+
+## Licensing
+[This work is licensed under the EUPL.](LICENSE.txt)

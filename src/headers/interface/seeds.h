@@ -1,3 +1,5 @@
+// seeds are numbers that determine the random contents of generates passphrases
+
 // this struct holds the data given in the argument for --amount
 struct amount {
     int amoutOfPasswords;

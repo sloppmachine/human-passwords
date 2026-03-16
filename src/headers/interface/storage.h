@@ -1,3 +1,5 @@
+// storage.h and storage.c contain the functions that directly write to or read from the local file system.
+
 // exits if the source file couldn't be opened, implements a verbose option
 FILE* openSourceFile(bool _verbose, char* _fileName);
 
@@ -5,7 +7,7 @@ FILE* openSourceFile(bool _verbose, char* _fileName);
 FILE* openTargetFile(bool _verbose, char* _fileName);
 
 // creates the bin file that contains the word pool from which words are pulled
-void buildWordPoolFile(FILE* _source, FILE* _target, struct huffmanTree* _tree, char* _alphabet, int _alphabetLength);
+void buildWordPoolFile(FILE* _source, FILE* _target, struct huffmanTree* _tree, char* _alphabet, int _alphabetLength, bool verbose);
 
 // recreates the original file from the bin file
 void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphabetLength, bool verbose);

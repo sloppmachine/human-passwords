@@ -35,7 +35,7 @@ FILE* openSourceFile(bool _verbose, char* _fileName) {
     if (toReturn) {
         printIfVerbose(_verbose, "Successfully opened %s ...\n", _fileName);
     } else {
-        printf("The file %s doesn't seem to exist.\n", _fileName);
+        printf("Error: can't open the file %s . It might not exist, or you might be lacking permissions.\n", _fileName);
         exit(EXIT_FAILURE);
     }
     return toReturn;
@@ -46,14 +46,13 @@ FILE* openTargetFile(bool _verbose, char* _fileName) {
     if (toReturn) {
         printIfVerbose(_verbose, "Successfully opened %s ...\n", _fileName);
     } else {
-        printf("Can't create or open the file %s .\n", _fileName);
+        printf("Error: can't create or open the file %s . You might be lacking permissions.\n", _fileName);
         exit(EXIT_FAILURE);
     }
     return toReturn;
 }
 
 static void writeHuffmanTreeNodeToFile(FILE* _fileToWrite, struct huffmanTreeNode* _node, char* _prefix, int _prefixLength) {
-    printf("writing node for %c to file\n", _node -> content);
     fputc(_node -> content, _fileToWrite);
     fputc(_prefixLength, _fileToWrite); // this is actually guaranteed to fit into a single byte.
     fwrite(_prefix, sizeof(char), _prefixLength, _fileToWrite);
@@ -88,7 +87,6 @@ static void writeHuffmanTreeNodesToFile(FILE* _fileToWrite, struct huffmanTreeNo
 static void writeHuffmanTreeToFile(FILE* _fileToWrite, struct huffmanTree* _tree) {
     // the first byte declares the amount of nodes of the following section. we will fill it in the end. a byte will be enough to store the number
     int reservedByteLocation = ftell(_fileToWrite);
-    printf("writing reserved byte\n");
     fputc('\0', _fileToWrite);
 
     int nodesSaved = 0;
@@ -96,7 +94,6 @@ static void writeHuffmanTreeToFile(FILE* _fileToWrite, struct huffmanTree* _tree
     // then we encode the tree in no particular order (using a dummy string for the root prefix)
     writeHuffmanTreeNodesToFile(_fileToWrite, _tree -> root, "", 0, &nodesSaved);
 
-    printf("saved a total of %i nodes, now updating first byte\n", nodesSaved);
     // now update the byte stating amount of nodes
     int finalPosition = ftell(_fileToWrite);
     fseek(_fileToWrite, reservedByteLocation, SEEK_SET);
@@ -138,8 +135,9 @@ static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, st
 
         characterToEncodeAlphabetPointer = strchr(_alphabet, characterToEncode);
         if (!characterToEncodeAlphabetPointer) {
-            printf("The word file contains the character %c which is not part of the alphabet provided: \n", characterToEncode);
+            printf("Error: the word file contains the character %c which is not part of the alphabet provided: ", characterToEncode);
             printFromCharArray(_alphabet, _alphabetLength);
+            printf("\n");
             exit(EXIT_FAILURE);
         }
 
@@ -196,17 +194,16 @@ static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, st
     free(bitBuffer);
 }
 
-void buildWordPoolFile(FILE* _source, FILE* _target, struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
-    printf("Reserving the first 4 bytes...\n");
+void buildWordPoolFile(FILE* _source, FILE* _target, struct huffmanTree* _tree, char* _alphabet, int _alphabetLength, bool verbose) {
     // the first 4 bytes will store how many words are in the data pool
     for (int i = 0; i < 4; i++) {
         fputc('\0', _target);
     }
 
-    printf("attempting to write huffman tree\n");
+    printIfVerbose(verbose, "Writing huffman tree to file...\n");
     writeHuffmanTreeToFile(_target, _tree);
 
-    printf("attempting to write encoded words\n");
+    printIfVerbose(verbose, "Writing encoded words to file...\n");
     writeEncodedWordsToFile(_source, _target, _tree, _alphabet, _alphabetLength);
 }
 
@@ -242,9 +239,6 @@ void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphab
 
     printIfVerbose(verbose, "Reconstructing  huffman tree from file...\n");
     struct huffmanTree* tree = reconstructHuffmanTreeFromFile(source);
-    if (verbose) {
-        printHuffmanCodes(tree, _alphabet, _alphabetLength);
-    }
     char** huffmanCodes = getEncodedAlphabet(tree, _alphabet, _alphabetLength);
 
     int longestCode = getLongestHuffmanCodeLength(huffmanCodes, _alphabetLength);
@@ -367,9 +361,6 @@ struct translatedSeedList* translateSeedListWithWordPool(
     // the approach is the same as when restoring a word pool
     printIfVerbose(verbose, "Reconstructing  huffman tree from file...\n");
     struct huffmanTree* tree = reconstructHuffmanTreeFromFile(source);
-    if (verbose) {
-        printHuffmanCodes(tree, _alphabet, _alphabetLength);
-    }
     char** huffmanCodes = getEncodedAlphabet(tree, _alphabet, _alphabetLength);
 
     // we need to be able to recognize the newline character
@@ -528,6 +519,10 @@ void writeTranslatedSeedsToFile(
             }
             int seedToTranslate = _seeds[currentLine][currentWord];
             char* translation = getSeedTranslation(seedToTranslate, _translatedSeedList);
+            if (!translation) {
+                printf("Error: Could not translate seed using the binary. It is probably incomplete or corrupted.\n");
+                exit(EXIT_FAILURE);
+            }
             fprintf(target, "%s", getSeedTranslation(_seeds[currentLine][currentWord], _translatedSeedList));
         }
         fputc('\n', target);

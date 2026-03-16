@@ -1,3 +1,5 @@
+// this is a loosely connected group of general functions used in multiple sceniarios during development
+
 // this can replace a normal printf, a semicolon naturally follows after: https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
 #define printIfVerbose(_verbose, _text, ...) if (_verbose) printf(_text, ##__VA_ARGS__)
 

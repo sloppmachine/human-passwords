@@ -1,3 +1,5 @@
+// a string builder is used to construct a short string from a variable amount of characters
+
 // builds a string from a (possibly unknown) amount of chars. linear runtime, not meant for big strings
 struct stringBuilder {
     struct stringBuilderChar* first;

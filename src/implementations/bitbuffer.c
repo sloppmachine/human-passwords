@@ -120,7 +120,6 @@ int flushEncodedCharacter(struct bitBuffer* _bitBuffer, char** _encodings, int _
             currentBitBufferElement = currentBitBufferElement -> next;
         }
         if (isEncodingMatched) {
-            //printf("seems we matched an encoding, character index %i, encoding %s \n", currentEncodingIndex, encoding);
             // actually flush all bits (currentIndexInEncoding is the amount of bits to flush)
             for (int i = 0; i < currentIndexInEncoding; i++) {
                 flushSingleBit(_bitBuffer);
