@@ -25,5 +25,8 @@ void addEncodedNodeToHuffmanTree(struct huffmanTree* _tree, char _content, char*
 // returns an array of strings of '0' and '1', where the index is alphabetical
 char** getEncodedAlphabet(struct huffmanTree* _tree, char* _alphabet, int _alphabetLength);
 
+// returns the length of the longest known huffman code
+int getLongestHuffmanCodeLength(char** _encodedAlphabet, int _alphabetLength);
+
 // prints the huffman codes that a huffman tree symbolizes. every symbol in the huffman tree must also be in the given alphabet.
 void printHuffmanCodes(struct huffmanTree* _tree, char* _alphabet, int _alphabetLength);

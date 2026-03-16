@@ -1,3 +1,6 @@
+// returns true if all characters of the string are digits or it is empty
+bool isStringDigit(char* _string);
+
 void makeLowercase(char* _input);
 
 // returns an int array that represents the occurance of all characters

@@ -36,6 +36,17 @@ Required options:\n\
     --source=   -s=     CONTINUEHERE\n\
     --target=   -t=     CONTINUEHERE\n\
 \n"
+#define HELP_TEXT_EXTRACT_MODE "(WIP) This is where the help section will be\n\
+Motivation:\n\
+    (here a short explanation what the extract mode does)\n\
+General syntax:\n\
+    human-passwords extract <options>\n\
+Required options:\n\
+    --source=   -s=     CONTINUEHERE\n\
+    --target=   -t=     CONTINUEHERE\n\
+    --amount=   -a=     CONTINUEHERE\n\
+\n"
 
 #define UNKNOWN_MODE_TEXT "(WIP) Error: Unknown mode. \n"
 #define TOO_MANY_MODES_TEXT "(WIP) Error: You have specified to many modes. \n"
+#define MALFORMED_AMOUNT_ARGUMENT_TEXT "Malformed argument to --amount. The argument must follow the form: <amount of passwords>x<words per password>, for example like this: --argument=100x10.\n"

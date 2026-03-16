@@ -1,19 +1,19 @@
 // a structure to buffer single bits that can be flushed out as complete bytes, or as huffman codes
 struct bitBuffer {
     struct bitBufferElement* first;
+    struct bitBufferElement* last;
+    unsigned int size; // this value is updated in the functions for flushing and adding singular bits
 };
 
 struct bitBufferElement {
     bool content;
     struct bitBufferElement* next;
+    struct bitBufferElement* last;
 };
 
 struct bitBuffer* newBitBuffer();
 
 void freeBitBuffer(struct bitBuffer* _bitBuffer);
-
-// this is the current amount of bits buffered
-int getBitBufferSize(struct bitBuffer* _bitBuffer);
 
 // this runs in linear time. this structure isn't meant to hold more than some bytes at once
 void addBit(struct bitBuffer* _bitBuffer, bool _bit);

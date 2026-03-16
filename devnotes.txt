@@ -18,9 +18,24 @@ replace all commented out lines during debug
 
 verify reading as type with mroe than 8 bits when reading from file
 
+reduce "magic strings"
+
+consider using more keywords like const?
+
+mention keeping sizeof(char) even though c standard thing
+
+enforce/verify naming convention
+
+mention long int is used when >=32bits reasonable
+
+implement better sorting in seedsToFind for extra large bulk password generation
+
+verify verbose printings exist
+
 save file structure:
+- 4 bytes: amount of words contained in the pool 
 - length of the huffman tree section (the amount of nodes)
 - for each leaf of the huffman tree: 1 byte for the char, 1 byte for the length of the code, then the code (using bits)
-- amount of included bits in the last byte of the stream of words (the included bits are more significant than the not included ones)
+- 1 byte: amount of included bits in the last byte of the stream of words (the included bits are more significant than the not included ones)
 - stream of words to be read using the huffman tree (using a self-chosen seperator)
 - EOF

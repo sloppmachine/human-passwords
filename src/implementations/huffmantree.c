@@ -371,6 +371,25 @@ static void getEncodedAlphabetRecursive(
     }
 }
 
+int getLongestHuffmanCodeLength(char** _encodedAlphabet, int _alphabetLength) {
+    int longestCode = 0;
+    for (int currentCodeIndex = 0; currentCodeIndex < _alphabetLength; currentCodeIndex++) {
+        char* currentCode = _encodedAlphabet[currentCodeIndex];
+        int currentIndexInCode = 0;
+        while (true) {
+            if (currentCode[currentIndexInCode] == '\0') {
+                if (currentIndexInCode > longestCode) {
+                    longestCode = currentIndexInCode;
+                }
+                break;
+            } else {
+                currentIndexInCode++;
+            }
+        }
+    }
+    return longestCode;
+}
+
 void printHuffmanCodes(struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
     char** codes = getEncodedAlphabet(_tree, _alphabet, _alphabetLength);
     for (int i = 0; i < ALPHABET_LENGTH; i++) {

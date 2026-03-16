@@ -8,6 +8,8 @@
 #include <interface/bitbuffer.h>
 #include <interface/commons.h>
 #include <interface/huffmantree.h>
+#include <interface/seeds.h>
+#include <interface/stringbuilder.h>
 #include <interface/storage.h>
 
 // writes a byte for the character, then a byte for the length of the code, then 0-bytes or 1-bytes for the code.
@@ -27,6 +29,28 @@ static void extractAndAddHuffmanTreeNodeFromFile(FILE* _file, struct huffmanTree
 
 // the file pointer should be at the byte where the amount of nodes is stored.
 static struct huffmanTree* reconstructHuffmanTreeFromFile(FILE* _file);
+
+FILE* openSourceFile(bool _verbose, char* _fileName) {
+    FILE* toReturn = fopen(_fileName, "rb");
+    if (toReturn) {
+        printIfVerbose(_verbose, "Successfully opened %s ...\n", _fileName);
+    } else {
+        printf("The file %s doesn't seem to exist.\n", _fileName);
+        exit(EXIT_FAILURE);
+    }
+    return toReturn;
+}
+
+FILE* openTargetFile(bool _verbose, char* _fileName) {
+    FILE* toReturn = fopen(_fileName, "wb");
+    if (toReturn) {
+        printIfVerbose(_verbose, "Successfully opened %s ...\n", _fileName);
+    } else {
+        printf("Can't create or open the file %s .\n", _fileName);
+        exit(EXIT_FAILURE);
+    }
+    return toReturn;
+}
 
 static void writeHuffmanTreeNodeToFile(FILE* _fileToWrite, struct huffmanTreeNode* _node, char* _prefix, int _prefixLength) {
     printf("writing node for %c to file\n", _node -> content);
@@ -63,7 +87,8 @@ static void writeHuffmanTreeNodesToFile(FILE* _fileToWrite, struct huffmanTreeNo
 
 static void writeHuffmanTreeToFile(FILE* _fileToWrite, struct huffmanTree* _tree) {
     // the first byte declares the amount of nodes of the following section. we will fill it in the end. a byte will be enough to store the number
-    printf("writing first byte\n");
+    int reservedByteLocation = ftell(_fileToWrite);
+    printf("writing reserved byte\n");
     fputc('\0', _fileToWrite);
 
     int nodesSaved = 0;
@@ -72,9 +97,9 @@ static void writeHuffmanTreeToFile(FILE* _fileToWrite, struct huffmanTree* _tree
     writeHuffmanTreeNodesToFile(_fileToWrite, _tree -> root, "", 0, &nodesSaved);
 
     printf("saved a total of %i nodes, now updating first byte\n", nodesSaved);
-    // now update the first byte
+    // now update the byte stating amount of nodes
     int finalPosition = ftell(_fileToWrite);
-    fseek(_fileToWrite, 0, SEEK_SET);
+    fseek(_fileToWrite, reservedByteLocation, SEEK_SET);
     fputc(nodesSaved, _fileToWrite);
     fseek(_fileToWrite, finalPosition, SEEK_SET);
 }
@@ -84,9 +109,11 @@ static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, st
     char** codes = getEncodedAlphabet(_tree, _alphabet, _alphabetLength);
     struct bitBuffer* bitBuffer = newBitBuffer();
 
-    // the first byte will store how many bits of the final byte were used
+    // reserve a byte to store how many bits of the final byte are relevant
     int finalBitCountBytePosition = ftell(_fileToWrite);
     fputc('\0', _fileToWrite);
+
+    unsigned int wordPoolSize = 0; // this will increase for each '\n' encoded
 
     char characterToEncode;
     char* characterToEncodeAlphabetPointer;
@@ -96,7 +123,16 @@ static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, st
     while (true) {
         characterToEncode = fgetc(_wordsToEncode);
 
+        if (characterToEncode == '\n') {
+            wordPoolSize++;
+        }
+
         if (characterToEncode == EOF) {
+            // perform a final flush until less than a byte remains
+            while (bitBuffer -> size >= 8) {
+                unsigned char flushedByte = flushSingleByte(bitBuffer);
+                fputc(flushedByte, _fileToWrite);
+            }
             break;
         }
 
@@ -128,11 +164,8 @@ static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, st
         // after a specific amount of characters have been encoded, flush the buffer as long as possible without breaking whole bytes
         charactersEncodedSinceLastFlush++;
         if (charactersEncodedSinceLastFlush >= CHARACTERS_TO_ENCODE_PER_FLUSH) {
-            while (getBitBufferSize(bitBuffer) >= 8) {
-                //printf("entering while loop\n");
+            while (bitBuffer -> size >= 8) {
                 unsigned char flushedByte = flushSingleByte(bitBuffer);
-                //printf("flushed this: %i\n", flushedByte);
-                fflush(stdout);
                 fputc(flushedByte, _fileToWrite);
             }
             charactersEncodedSinceLastFlush = 0;
@@ -140,11 +173,22 @@ static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, st
 
     }
 
-    // at this point the final complete byte has already been flushed, so we can just directly write the buffer size to the reserved byte
+    // at this point the final complete byte has already been flushed, so we can write the final buffer size and word pool size to the reserved bytes
     int currentWritingPoint = ftell(_fileToWrite);
+
     fseek(_fileToWrite, finalBitCountBytePosition, SEEK_SET);
-    fputc(getBitBufferSize(bitBuffer), _fileToWrite);
-    printf("remaining bit buffer size %i\n", getBitBufferSize(bitBuffer));
+    fputc(bitBuffer -> size, _fileToWrite);
+
+    // in 4 bytes, write the size of the word pool.
+    fseek(_fileToWrite, 0, SEEK_SET);
+    unsigned int remainingSizeToWrite = wordPoolSize; // this value can not be negative
+    // we write from back to front
+    for (int i = 0; i < 4; i++) {
+        fseek(_fileToWrite, 3 - i, SEEK_SET);
+        fputc(remainingSizeToWrite % 256, _fileToWrite);
+        remainingSizeToWrite /= 256;
+    }
+    
     fseek(_fileToWrite, currentWritingPoint, SEEK_SET);
     fputc(flushSingleByte(bitBuffer), _fileToWrite);
     
@@ -153,6 +197,12 @@ static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, st
 }
 
 void buildWordPoolFile(FILE* _source, FILE* _target, struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
+    printf("Reserving the first 4 bytes...\n");
+    // the first 4 bytes will store how many words are in the data pool
+    for (int i = 0; i < 4; i++) {
+        fputc('\0', _target);
+    }
+
     printf("attempting to write huffman tree\n");
     writeHuffmanTreeToFile(_target, _tree);
 
@@ -187,6 +237,9 @@ static struct huffmanTree* reconstructHuffmanTreeFromFile(FILE* _file) {
 }
 
 void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphabetLength, bool verbose) {
+    // skip the first 4 bytes, which represent the size of the word pool
+    fseek(source, 4, SEEK_SET);
+
     printIfVerbose(verbose, "Reconstructing  huffman tree from file...\n");
     struct huffmanTree* tree = reconstructHuffmanTreeFromFile(source);
     if (verbose) {
@@ -194,22 +247,7 @@ void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphab
     }
     char** huffmanCodes = getEncodedAlphabet(tree, _alphabet, _alphabetLength);
 
-    // find the length of the longest code
-    int longestCode = 0;
-    for (int currentCodeIndex = 0; currentCodeIndex < _alphabetLength; currentCodeIndex++) {
-        char* currentCode = huffmanCodes[currentCodeIndex];
-        int currentIndexInCode = 0;
-        while (true) {
-            if (currentCode[currentIndexInCode] == '\0') {
-                if (currentIndexInCode > longestCode) {
-                    longestCode = currentIndexInCode;
-                }
-                break;
-            } else {
-                currentIndexInCode++;
-            }
-        }
-    }
+    int longestCode = getLongestHuffmanCodeLength(huffmanCodes, _alphabetLength);
 
     printIfVerbose(verbose, "Decoding the binary's word pool...\n");
 
@@ -242,7 +280,7 @@ void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphab
             // do the final flush of the bitbuffer
             while (true) {
 
-                if (getBitBufferSize(bitBuffer) == 0) {
+                if (!bitBuffer -> size) {
                     break;
                 }
                 int flushedCharacterIndex = flushEncodedCharacter(bitBuffer, huffmanCodes, _alphabetLength);
@@ -263,7 +301,7 @@ void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphab
         if (bytesReadSinceLastFlush >= BYTES_TO_READ_PER_FLUSH) {
             // decode characters from the buffer as long as a complete encoded character is guaranteed to be there (else the encoding must somehow be corrupted)
             // this is the case if the bit buffer is at least as long as the longest encoding
-            while (getBitBufferSize(bitBuffer) >= longestCode) {
+            while (bitBuffer -> size >= longestCode) {
                 int indexOfEncodedChar = flushEncodedCharacter(bitBuffer, huffmanCodes, _alphabetLength);
                 if (indexOfEncodedChar == -1) {
                     printf("Error: the word pool in the binary is malformed.\n");
@@ -279,16 +317,219 @@ void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphab
         nextChar = fgetc(source);
     }
 
+    free(huffmanCodes);
+    free(bitBuffer);
+    free(tree);
 }
 
+unsigned int getWordPoolSize(FILE* _source) {
+    unsigned int toReturn;
+    int currentFileLocation = ftell(_source);
+    // read the first 4 bytes as one integer
+    fseek(_source, 0, SEEK_SET);
+    for (int i = 0; i < 4; i++) {
+        toReturn *= 256;
+        toReturn += fgetc(_source);
+    }
+    fseek(_source, currentFileLocation, SEEK_SET);
+    return toReturn;
+}
 
-struct wordList* extractFromWordPool(FILE* source, char* _alphabet, int _alphabetLength, int* _seeds, int _seedsLength, bool verbose) {
+struct translatedSeedList* translateSeedListWithWordPool(
+    FILE* source,
+    struct seedsToFind* _seedsToFind,
+    char* _alphabet,
+    int _alphabetLength,
+    bool verbose
+) {
+    // the resulting list is guaranteed to be sorted by seed, since the seeds are translated in order
+    struct translatedSeedList* toReturn = newTranslatedSeedList();
+    int currentSeed = 0;
+    int* relevantSeeds = _seedsToFind -> sortedArray;
+    int relevantSeedsAmount = _seedsToFind -> amount;
+    int nextRelevantSeedIndex = 0;
+    struct stringBuilder* currentTranslatedSeedStringBuilder; // initialized once seed is relevant
+    bool isCurrentSeedRelevant;
+    if (relevantSeeds[nextRelevantSeedIndex] == currentSeed) {
+        isCurrentSeedRelevant = true;
+        if (nextRelevantSeedIndex < relevantSeedsAmount - 1) {
+            nextRelevantSeedIndex++;
+        }
+        currentTranslatedSeedStringBuilder = newStringBuilder();
+    } else {
+        isCurrentSeedRelevant = false;
+        currentTranslatedSeedStringBuilder = NULL;
+    }
+
+    // skip the first 4 bytes, which represent the size of the word pool
+    fseek(source, 4, SEEK_SET);
+    
+    // the approach is the same as when restoring a word pool
     printIfVerbose(verbose, "Reconstructing  huffman tree from file...\n");
     struct huffmanTree* tree = reconstructHuffmanTreeFromFile(source);
-    printHuffmanCodes(tree, _alphabet, _alphabetLength);
+    if (verbose) {
+        printHuffmanCodes(tree, _alphabet, _alphabetLength);
+    }
+    char** huffmanCodes = getEncodedAlphabet(tree, _alphabet, _alphabetLength);
 
-    printf("not yet implemented\n");
-    exit(EXIT_FAILURE);
+    // we need to be able to recognize the newline character
+    int longestCode = getLongestHuffmanCodeLength(huffmanCodes, _alphabetLength);
+    char* newLineCharacterAlphabetPointer = strchr(_alphabet, '\n');
+    if (!newLineCharacterAlphabetPointer) {
+        printf("The word file does not contain a newline character.");
+        exit(EXIT_FAILURE);
+    }
+    int newLineCharacterAlphabetIndex = newLineCharacterAlphabetPointer - _alphabet;
 
-    freeHuffmanTree(tree);
+    printIfVerbose(verbose, "Decoding the binary's word pool...\n");
+
+    // the next byte represents the amount of bits in the last byte that are of relevance
+    char finalBitCount = fgetc(source);
+
+    // read bytes from the encoded word stream. the last byte has a special meaning, so we need to read "a byte ahead" to see the EOF in time
+    int currentChar = 0;
+    int nextChar = fgetc(source);
+
+    // special case: the first character read is EOF
+    if (nextChar == EOF) {
+        printIfVerbose(verbose, "The binary's word pool is empty.");
+    } else {
+        currentChar = nextChar;
+        nextChar = fgetc(source);
+    }
+
+    struct bitBuffer* bitBuffer = newBitBuffer();
+    int bytesReadSinceLastFlush = 0;
+    while (true) {
+
+        // check whether we have reached the final byte
+        if (nextChar == EOF) {
+            // of the final byte, we only need the finalBitCount most significant byte
+            for (int i = 0; i < finalBitCount; i++) {
+                addBit(bitBuffer, currentChar >= 128);
+                currentChar = (currentChar << 1) % 256; // reduce it to 8 bits
+            }
+
+            // do the final flush of the bitbuffer
+            while (true) {
+
+                if (!bitBuffer -> size) {
+                    break;
+                }
+                int flushedCharacterIndex = flushEncodedCharacter(bitBuffer, huffmanCodes, _alphabetLength);
+                if (flushedCharacterIndex == -1) {
+                    printf("Error: the word pool in the binary is malformed.\n");
+                    exit(EXIT_FAILURE);
+                }
+                if (flushedCharacterIndex == newLineCharacterAlphabetIndex) {
+                    // finalize the previous seed translation
+                    if (currentTranslatedSeedStringBuilder) {
+                        char* translatedSeed = finalizeStringBuilder(currentTranslatedSeedStringBuilder);
+                        appendToTranslatedSeedList(toReturn, currentSeed, translatedSeed);
+                    }
+
+                    // increase seed and prepare next string builder if current seed is relevant
+                    currentSeed++;
+
+                    if (nextRelevantSeedIndex >= relevantSeedsAmount) {
+                        // we are finished and can clean up
+                        free(huffmanCodes);
+                        free(bitBuffer);
+                        free(tree);
+                        return toReturn;
+                    }
+
+                    if (relevantSeeds[nextRelevantSeedIndex] == currentSeed) {
+                        isCurrentSeedRelevant = true;
+                        nextRelevantSeedIndex++;
+                        currentTranslatedSeedStringBuilder = newStringBuilder();
+                    } else {
+                        isCurrentSeedRelevant = false;
+                        currentTranslatedSeedStringBuilder = NULL;
+                    }
+                } else if (isCurrentSeedRelevant) {
+                    appendCharToStringBuilder(currentTranslatedSeedStringBuilder, _alphabet[flushedCharacterIndex]);
+                }
+            }
+            break;
+        }
+        
+        // add the current character into the buffer
+        addByte(bitBuffer, currentChar);
+        bytesReadSinceLastFlush++;
+
+        // flush the bit buffer if necessary
+        if (bytesReadSinceLastFlush >= BYTES_TO_READ_PER_FLUSH) {
+            // decode characters from the buffer as long as a complete encoded character is guaranteed to be there (else the encoding must somehow be corrupted)
+            // this is the case if the bit buffer is at least as long as the longest encoding
+            while (bitBuffer -> size >= longestCode) {
+                int indexOfEncodedChar = flushEncodedCharacter(bitBuffer, huffmanCodes, _alphabetLength);
+                if (indexOfEncodedChar == -1) {
+                    printf("Error: the word pool in the binary is malformed.\n");
+                    exit(EXIT_FAILURE);
+                }
+                if (indexOfEncodedChar == newLineCharacterAlphabetIndex) {
+                    // finalize the previous seed translation
+                    if (currentTranslatedSeedStringBuilder) {
+                        char* translatedSeed = finalizeStringBuilder(currentTranslatedSeedStringBuilder);
+                        appendToTranslatedSeedList(toReturn, currentSeed, translatedSeed);
+                    }
+
+                    // increase seed and prepare next string builder if current seed is relevant
+                    currentSeed++;
+
+                    if (nextRelevantSeedIndex >= relevantSeedsAmount) {
+                        // we are finished and can clean up
+                        free(huffmanCodes);
+                        free(bitBuffer);
+                        free(tree);
+                        return toReturn;
+                    }
+                    
+                    if (relevantSeeds[nextRelevantSeedIndex] == currentSeed) {
+                        isCurrentSeedRelevant = true;
+                        nextRelevantSeedIndex++;
+                        currentTranslatedSeedStringBuilder = newStringBuilder();
+                    } else {
+                        isCurrentSeedRelevant = false;
+                        currentTranslatedSeedStringBuilder = NULL;
+                    }
+                } else if (isCurrentSeedRelevant) {
+                    appendCharToStringBuilder(currentTranslatedSeedStringBuilder, _alphabet[indexOfEncodedChar]);
+                }
+            }
+            bytesReadSinceLastFlush = 0;
+        }
+
+        // prepare the next iteration
+        currentChar = nextChar;
+        nextChar = fgetc(source);
+    }
+
+    free(huffmanCodes);
+    free(bitBuffer);
+    free(tree);
+
+    return toReturn;
+}
+
+void writeTranslatedSeedsToFile(
+    FILE* target,
+    int** _seeds,
+    struct amount* _amount,
+    struct translatedSeedList* _translatedSeedList,
+    char* seperator,
+    bool verbose
+) {
+    for (int currentLine = 0; currentLine < _amount -> amoutOfPasswords; currentLine++) {
+        for (int currentWord = 0; currentWord < _amount -> wordsPerPassword; currentWord++) {
+            if (currentWord) {
+                fprintf(target, "%s", seperator);
+            }
+            int seedToTranslate = _seeds[currentLine][currentWord];
+            char* translation = getSeedTranslation(seedToTranslate, _translatedSeedList);
+            fprintf(target, "%s", getSeedTranslation(_seeds[currentLine][currentWord], _translatedSeedList));
+        }
+        fputc('\n', target);
+    }
 }

@@ -11,7 +11,9 @@ static char flushSingleBit(struct bitBuffer* _bitBuffer);
 
 struct bitBuffer* newBitBuffer() {
     struct bitBuffer* toReturn = saferMalloc(sizeof(struct bitBuffer), "bitBuffer");
+    toReturn -> size = 0;
     toReturn -> first = NULL;
+    toReturn -> last = NULL;
     return toReturn;
 }
 
@@ -29,45 +31,32 @@ static struct bitBufferElement* newBitBufferElement(bool _content) {
     struct bitBufferElement* toReturn = saferMalloc(sizeof(struct bitBufferElement), "bitBufferElement");
     toReturn -> content = _content;
     toReturn -> next = NULL;
-    return toReturn;
-}
-
-int getBitBufferSize(struct bitBuffer* _bitBuffer) {
-    int toReturn = 0;
-    struct bitBufferElement* current = _bitBuffer -> first;
-    while (current) {
-        toReturn++;
-        current = current -> next;
-    }
+    toReturn -> last = NULL;
     return toReturn;
 }
 
 void addBit(struct bitBuffer* _bitBuffer, bool _bit) {
     struct bitBufferElement* toInsert = newBitBufferElement(_bit);
-    if (_bitBuffer -> first) {
-        // try to find the last entry
-        struct bitBufferElement* last = _bitBuffer -> first;
-        while (last -> next) {
-            last = last -> next;
-        }
-        last -> next = toInsert;
+    if (_bitBuffer -> size) {
+        toInsert -> last = _bitBuffer -> last;
+        _bitBuffer -> last -> next = toInsert;
+        _bitBuffer -> last = toInsert;
     } else {
         _bitBuffer -> first = toInsert;
+        _bitBuffer -> last = toInsert;
     }
+    _bitBuffer -> size++;
 }
 
 void addByte(struct bitBuffer* _bitBuffer, unsigned char _byte) {
-    //printf("in addByte, got byte %i\n", _byte);
     for (int i = 0; i < 8; i++) {
         addBit(_bitBuffer, _byte & 0x80); // this is the case iff the first bit is 1
-        //printf("is bigger equals 128?: %i\n", _byte >= 128);
         _byte = _byte << 1;
-        //printf("after shift: %i\n", _byte);
     }
 }
 
 static char flushSingleBit(struct bitBuffer* _bitBuffer) {
-    if (_bitBuffer -> first) {
+    if (_bitBuffer -> size) {
         struct bitBufferElement* firstElement = _bitBuffer -> first;
         char toReturn;
         if (firstElement -> content) {
@@ -77,6 +66,11 @@ static char flushSingleBit(struct bitBuffer* _bitBuffer) {
         }
         _bitBuffer -> first = firstElement -> next;
         free(firstElement);
+        // if we just removed the last element, we also need to update the field of the struct
+        if (!_bitBuffer -> first) {
+            _bitBuffer -> last = NULL;
+        }
+        _bitBuffer -> size--;
         return toReturn;
     } else {
         return 0;
@@ -84,20 +78,6 @@ static char flushSingleBit(struct bitBuffer* _bitBuffer) {
 }
 
 unsigned char flushSingleByte(struct bitBuffer* _bitBuffer) {
-    /*printf("YO CURRENT BITBUFFER STATE: ");
-    struct bitBufferElement* current = _bitBuffer -> first;
-    while (current) {
-        if (current -> content) {
-            printf("1");
-        } else {
-            printf("0");
-        }
-        current = current -> next;
-    }
-    printf("\n");*/
-    //exit(EXIT_FAILURE);
-
-
     unsigned char toReturn = 0;
     // read a bit, then shift left. the most significant bits should be those that appeared first in the bit buffer
     for (int i = 0; i < 8; i++) {
@@ -108,20 +88,6 @@ unsigned char flushSingleByte(struct bitBuffer* _bitBuffer) {
 }
 
 int flushEncodedCharacter(struct bitBuffer* _bitBuffer, char** _encodings, int _alphabetLength) {
-    /*printf("YO CURRENT BITBUFFER STATE: ");
-    struct bitBufferElement* current = _bitBuffer -> first;
-    while (current) {
-        if (current -> content) {
-            printf("1");
-        } else {
-            printf("0");
-        }
-        current = current -> next;
-    }
-    printf("\n");*/
-    //exit(EXIT_FAILURE);
-
-
     // the beginning of the bit buffer may only hold up to one encoding. there is no ambiguity
     for (int currentEncodingIndex = 0; currentEncodingIndex < _alphabetLength; currentEncodingIndex++) {
         char* encoding = _encodings[currentEncodingIndex];

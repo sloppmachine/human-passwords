@@ -8,6 +8,7 @@
 #include <interface/commons.h>
 #include <interface/huffmantree.h>
 #include <interface/preprocessing.h>
+#include <interface/seeds.h>
 #include <interface/storage.h>
 
 // a checkpoint where we wait for user input

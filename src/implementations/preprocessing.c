@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +7,23 @@
 #include <constants/alphanumerics.h>
 
 #include <interface/commons.h>
+
+bool isStringDigit(char* _string) {
+    bool toReturn = true;
+    int i = 0;
+    while (true) {
+        char c = _string[i];
+        if (c == '\0') {
+            break;
+        }
+        if (!isdigit(c)) {
+            toReturn = false;
+            break;
+        }
+        i++;
+    }
+    return toReturn;
+}
 
 void makeLowercase(char* _input) {
     int i = 0;
