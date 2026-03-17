@@ -31,3 +31,9 @@ The general formatting of the code also has these specific conventions of mine:
 - When you expand a function call or declaration across multiple lines, all arguments of the expanded call get an own line.
 - Comments that have a space after the comment symbol are descriptive comments. Comments that have no space after the comment symbol are commented out code.
 - For pointer types, the * is directly next to the type pointed to; meaning you write `char* a` instead of `char *a`.
+
+## Further Details
+- The choice of numeric types is based on their minimum width according to the C standard - in other words, this code was written assuming every type only has its minimum range.
+- `sizeof(char)` always evaluates to 1 according to the C standard - still, the expression `sizeof(char)` is included verbatim in the respective allocations to make the code readable and intuitive.
+- Fields marked as `const` may still be freed; for that, they are casted to a non-`const` type. Casting a `const` type to a non-`const` type is however not done anywhere else.
+- Strings are usually not null-terminated if their length is passed with them.

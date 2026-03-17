@@ -18,6 +18,10 @@ Then, after having generated a file called `wordpool.bin`, you can exract passwo
 
 You can also use a mode called `restore`, which restores the original plain text word pool from the compressed binary.
 
+## Problems and future considerations
+- The program is not optimized for extraction of large amounts of words (say, over 1000). I might fix that.
+- The program currently operates using only the 26 lowercase standard english letters. I might change that.
+
 ## Source code documentation
 For a summary on project structure, see [conventions.md](conventions.md).
 

@@ -24,7 +24,7 @@ struct huffmanTree* getEmptyRootHuffmanTree();
 // used when reading nodes from a file (in storage.c)
 void addEncodedNodeToHuffmanTree(struct huffmanTree* _tree, char _content, char* _prefix, int _prefixLength);
 
-// returns an array of strings of '0' and '1', where the index is alphabetical
+// returns an array of strings of '0' and '1', where the index is alphabetical. NULL means no encoding was found.
 const char** getEncodedAlphabet(struct huffmanTree* _tree, const char* _alphabet, int _alphabetLength);
 
 // returns the length of the longest known huffman code

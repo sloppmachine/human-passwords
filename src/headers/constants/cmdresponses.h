@@ -43,6 +43,8 @@ Optional options:\n\
     --seperator=    -p=     The series of characters placed betweens words of a passphrase.\n\
 \n"
 
+// errors
 #define UNKNOWN_MODE_TEXT "Error: Unknown mode. \n"
 #define TOO_MANY_MODES_TEXT "Error: You have specified to many modes. \n"
-#define MALFORMED_AMOUNT_ARGUMENT_TEXT "Error: malformed argument to --amount. The argument must follow the form: <amount of passwords>x<words per password>, for example like this: --argument=100x10.\n"
+#define MALFORMED_AMOUNT_ARGUMENT_TEXT "Error: malformed argument to --amount. The argument must follow the form: <amount of passphrases>x<words per passphrase>, for example like this: --argument=100x10.\n"
+#define COULD_NOT_READ_FILE_TEXT "Error: could not read from file. It might be corruped or you might be lacking permissions.\n"

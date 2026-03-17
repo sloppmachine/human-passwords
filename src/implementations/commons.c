@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <constants/cmdresponses.h>
+
 void* saferMalloc(int _size, const char* _objectDescription) {
     void* const toReturn = malloc(_size);
     if (toReturn == NULL) {
@@ -20,7 +22,7 @@ void assert(int _expression, const char* _errorDescription) {
 char assertedFGetC(FILE* source) {
     int toReturn = fgetc(source);
     if (toReturn == -1) {
-        printf("Error: could not read from file. It might be corruped or you might be lacking permissions.\n");
+        printf(COULD_NOT_READ_FILE_TEXT);
         exit(EXIT_FAILURE);
     }
     return (char) toReturn;

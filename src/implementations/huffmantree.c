@@ -290,7 +290,6 @@ void addEncodedNodeToHuffmanTree(struct huffmanTree* _tree, char _content, char*
     }
 }
 
-// CONTINUEHERE add documentation - null means no encoding
 const char** getEncodedAlphabet(struct huffmanTree* _tree, const char* _alphabet, int _alphabetLength) {
     const char** const toReturn = saferMalloc(sizeof(char*) * _alphabetLength, "array of huffman codes");
     for (int i = 0; i < _alphabetLength; i++) {
