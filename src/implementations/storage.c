@@ -13,10 +13,16 @@
 #include <interface/storage.h>
 
 // writes a byte for the character, then a byte for the length of the code, then 0-bytes or 1-bytes for the code.
-static void writeHuffmanTreeNodeToFile(FILE* _fileToWrite, struct huffmanTreeNode* _node, char* _prefix, int _prefixlength);
+static void writeHuffmanTreeNodeToFile(FILE* _fileToWrite, const struct huffmanTreeNode* _node, const char* _prefix, int _prefixlength);
 
 // recursively calls writeHuffmanTreeNodeToFile, and updates the amount of nodes saved
-static void writeHuffmanTreeNodesToFile(FILE* _fileToWrite, struct huffmanTreeNode* _node, char* _prefix, int _prefixLength, int* _nodesSaved);
+static void writeHuffmanTreeNodesToFile(
+    FILE* _fileToWrite,
+    const struct huffmanTreeNode* _node,
+    const char* _prefix,
+    int _prefixLength,
+    int* _nodesSaved
+);
 
 // writes a byte documenting the length of the representation, followed by the single node representations in no necessary order.
 static void writeHuffmanTreeToFile(FILE* _fileToWrite, struct huffmanTree* _tree);
@@ -30,7 +36,7 @@ static void extractAndAddHuffmanTreeNodeFromFile(FILE* _file, struct huffmanTree
 // the file pointer should be at the byte where the amount of nodes is stored.
 static struct huffmanTree* reconstructHuffmanTreeFromFile(FILE* _file);
 
-FILE* openSourceFile(bool _verbose, char* _fileName) {
+FILE* openSourceFile(bool _verbose, const char* _fileName) {
     FILE* toReturn = fopen(_fileName, "rb");
     if (toReturn) {
         printIfVerbose(_verbose, "Successfully opened %s ...\n", _fileName);
@@ -41,7 +47,7 @@ FILE* openSourceFile(bool _verbose, char* _fileName) {
     return toReturn;
 }
 
-FILE* openTargetFile(bool _verbose, char* _fileName) {
+FILE* openTargetFile(bool _verbose, const char* _fileName) {
     FILE* toReturn = fopen(_fileName, "wb");
     if (toReturn) {
         printIfVerbose(_verbose, "Successfully opened %s ...\n", _fileName);
@@ -52,19 +58,25 @@ FILE* openTargetFile(bool _verbose, char* _fileName) {
     return toReturn;
 }
 
-static void writeHuffmanTreeNodeToFile(FILE* _fileToWrite, struct huffmanTreeNode* _node, char* _prefix, int _prefixLength) {
+static void writeHuffmanTreeNodeToFile(FILE* _fileToWrite, const struct huffmanTreeNode* _node, const char* _prefix, int _prefixLength) {
     fputc(_node -> content, _fileToWrite);
     fputc(_prefixLength, _fileToWrite); // this is actually guaranteed to fit into a single byte.
     fwrite(_prefix, sizeof(char), _prefixLength, _fileToWrite);
 }
 
-static void writeHuffmanTreeNodesToFile(FILE* _fileToWrite, struct huffmanTreeNode* _node, char* _prefix, int _prefixLength, int* _nodesSaved) {
+static void writeHuffmanTreeNodesToFile(
+    FILE* _fileToWrite,
+    const struct huffmanTreeNode* _node,
+    const char* _prefix,
+    int _prefixLength,
+    int* _nodesSaved
+) {
     bool isInner = false;
 
     // check for children. technically both childs must simultaneously exist or not exist but i like this flow of code more
     if (_node -> leftChild) {
         isInner = true;
-        char* leftChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
+        char* const leftChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
         memcpy(leftChildPrefix, _prefix, _prefixLength);
         leftChildPrefix[_prefixLength] = '0';
         writeHuffmanTreeNodesToFile(_fileToWrite, _node -> leftChild, leftChildPrefix, _prefixLength + 1, _nodesSaved);
@@ -72,7 +84,7 @@ static void writeHuffmanTreeNodesToFile(FILE* _fileToWrite, struct huffmanTreeNo
     }
     if (_node -> rightChild) {
         isInner = true;
-        char* rightChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
+        char* const rightChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
         memcpy(rightChildPrefix, _prefix, _prefixLength);
         rightChildPrefix[_prefixLength] = '1';
         writeHuffmanTreeNodesToFile(_fileToWrite, _node -> rightChild, rightChildPrefix, _prefixLength + 1, _nodesSaved);
@@ -95,7 +107,7 @@ static void writeHuffmanTreeToFile(FILE* _fileToWrite, struct huffmanTree* _tree
     writeHuffmanTreeNodesToFile(_fileToWrite, _tree -> root, "", 0, &nodesSaved);
 
     // now update the byte stating amount of nodes
-    int finalPosition = ftell(_fileToWrite);
+    const int finalPosition = ftell(_fileToWrite);
     fseek(_fileToWrite, reservedByteLocation, SEEK_SET);
     fputc(nodesSaved, _fileToWrite);
     fseek(_fileToWrite, finalPosition, SEEK_SET);
@@ -103,8 +115,8 @@ static void writeHuffmanTreeToFile(FILE* _fileToWrite, struct huffmanTree* _tree
 
 static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
     // generate the encodings from the tree and ready the bit buffer
-    char** codes = getEncodedAlphabet(_tree, _alphabet, _alphabetLength);
-    struct bitBuffer* bitBuffer = newBitBuffer();
+    const char** codes = getEncodedAlphabet(_tree, _alphabet, _alphabetLength);
+    struct bitBuffer* const bitBuffer = newBitBuffer();
 
     // reserve a byte to store how many bits of the final byte are relevant
     int finalBitCountBytePosition = ftell(_fileToWrite);
@@ -143,7 +155,7 @@ static void writeEncodedWordsToFile(FILE* _wordsToEncode, FILE* _fileToWrite, st
 
         characterToEncodeAlphabetIndex = characterToEncodeAlphabetPointer - _alphabet;
 
-        char* encoding = codes[characterToEncodeAlphabetIndex];
+        const char* encoding = codes[characterToEncodeAlphabetIndex];
         int i = 0;
         char currentEncodingChar;
         while (true) {
@@ -239,7 +251,7 @@ void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphab
 
     printIfVerbose(verbose, "Reconstructing  huffman tree from file...\n");
     struct huffmanTree* tree = reconstructHuffmanTreeFromFile(source);
-    char** huffmanCodes = getEncodedAlphabet(tree, _alphabet, _alphabetLength);
+    const char** huffmanCodes = getEncodedAlphabet(tree, _alphabet, _alphabetLength);
 
     int longestCode = getLongestHuffmanCodeLength(huffmanCodes, _alphabetLength);
 
@@ -331,7 +343,7 @@ unsigned int getWordPoolSize(FILE* _source) {
 
 struct translatedSeedList* translateSeedListWithWordPool(
     FILE* source,
-    struct seedsToFind* _seedsToFind,
+    const struct seedsToFind* _seedsToFind,
     char* _alphabet,
     int _alphabetLength,
     bool verbose
@@ -361,7 +373,7 @@ struct translatedSeedList* translateSeedListWithWordPool(
     // the approach is the same as when restoring a word pool
     printIfVerbose(verbose, "Reconstructing  huffman tree from file...\n");
     struct huffmanTree* tree = reconstructHuffmanTreeFromFile(source);
-    char** huffmanCodes = getEncodedAlphabet(tree, _alphabet, _alphabetLength);
+    const char** huffmanCodes = getEncodedAlphabet(tree, _alphabet, _alphabetLength);
 
     // we need to be able to recognize the newline character
     int longestCode = getLongestHuffmanCodeLength(huffmanCodes, _alphabetLength);
@@ -506,10 +518,10 @@ struct translatedSeedList* translateSeedListWithWordPool(
 
 void writeTranslatedSeedsToFile(
     FILE* target,
-    int** _seeds,
-    struct amount* _amount,
-    struct translatedSeedList* _translatedSeedList,
-    char* seperator,
+    const int** _seeds,
+    const struct amount* _amount,
+    const struct translatedSeedList* _translatedSeedList,
+    const char* seperator,
     bool verbose
 ) {
     for (int currentLine = 0; currentLine < _amount -> amoutOfPasswords; currentLine++) {
@@ -517,8 +529,8 @@ void writeTranslatedSeedsToFile(
             if (currentWord) {
                 fprintf(target, "%s", seperator);
             }
-            int seedToTranslate = _seeds[currentLine][currentWord];
-            char* translation = getSeedTranslation(seedToTranslate, _translatedSeedList);
+            const int seedToTranslate = _seeds[currentLine][currentWord];
+            const char* translation = getSeedTranslation(seedToTranslate, _translatedSeedList);
             if (!translation) {
                 printf("Error: Could not translate seed using the binary. It is probably incomplete or corrupted.\n");
                 exit(EXIT_FAILURE);

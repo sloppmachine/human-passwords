@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void* saferMalloc(int _size, char* _objectDescription) {
-    void* toReturn = malloc(_size);
+void* saferMalloc(int _size, const char* _objectDescription) {
+    void* const toReturn = malloc(_size);
     if (toReturn == NULL) {
         printf("Error: failed to allocate object of type \"%s\".\n", _objectDescription);
         exit(EXIT_FAILURE);
@@ -10,7 +10,7 @@ void* saferMalloc(int _size, char* _objectDescription) {
     return toReturn;
 }
 
-void assert(int _expression, char* _errorDescription) {
+void assert(int _expression, const char* _errorDescription) {
     if (!_expression) {
         printf("Error: %s\n", _errorDescription);
         exit(EXIT_FAILURE);

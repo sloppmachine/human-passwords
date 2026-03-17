@@ -10,8 +10,6 @@ verify reading as type with mroe than 8 bits when reading from file
 
 reduce "magic strings"
 
-consider using more keywords like const, enum?
-
 mention keeping sizeof(char) even though c standard thing
 
 enforce/verify naming convention
@@ -24,6 +22,9 @@ use wording "passphrase"
 
 remove CONTINUEHEREs
 
+multiple alphabet options
+
+mention freeing consts
 
 
 

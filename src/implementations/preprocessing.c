@@ -38,21 +38,21 @@ void makeLowercase(char* _input) {
     }
 }
 
-int* getCharacterDistributionFromCharArray(char* _alphabet, int _alphabetSize, char* _input, int _inputSize) {
+int* getCharacterDistributionFromCharArray(const char* _alphabet, int _alphabetSize, const char* _input, int _inputSize) {
     // we will do some voodoo to improve the speed here.
     // we will make our own copies of the alphabet, and each time we encounter a character, we swap it with its predecessor
     // this means that over time, common characters will automatically move forward in the alphabet, and can be found quicker
     // at the end we can use the original alphabet to restore ("unswap") our data
 
-    char* swappableAlphabet = saferMalloc(_alphabetSize * sizeof(char), "char array");
-    int* swappableOccurences = saferMalloc(_alphabetSize * sizeof(int), "int array");
+    char* const swappableAlphabet = saferMalloc(_alphabetSize * sizeof(char), "char array");
+    int* const swappableOccurences = saferMalloc(_alphabetSize * sizeof(int), "int array");
     for (int i = 0; i < _alphabetSize; i++) {
         swappableAlphabet[i] = _alphabet[i];
         swappableOccurences[i] = 0;
     }
 
     for (int currentInputPosition = 0; currentInputPosition < _inputSize; currentInputPosition++) {
-        char currentChar = _input[currentInputPosition];
+        const char currentChar = _input[currentInputPosition];
 
         for (int currentCharAlphabetIndex = 0; currentCharAlphabetIndex < _alphabetSize; currentCharAlphabetIndex++) {
             // find the position of the current character in the rearrangeable alphabet
@@ -111,13 +111,13 @@ int* getCharacterDistributionFromCharArray(char* _alphabet, int _alphabetSize, c
     return swappableOccurences;
 }
 
-int* getCharacterDistributionFromFile(char* _alphabet, int _alphabetSize, FILE* _input) {
+int* getCharacterDistributionFromFile(const char* _alphabet, int _alphabetSize, FILE* _input) {
     // this is functionally just like getCharacterDistributionFromCharArray, therefore no extra comments
     // we need to additionally keep track of the file pointer
-    int startingPosition = ftell(_input);
+    const int startingPosition = ftell(_input);
 
-    char* swappableAlphabet = saferMalloc(_alphabetSize * sizeof(char), "char array");
-    int* swappableOccurences = saferMalloc(_alphabetSize * sizeof(int), "int array");
+    char* const swappableAlphabet = saferMalloc(_alphabetSize * sizeof(char), "char array");
+    int* const swappableOccurences = saferMalloc(_alphabetSize * sizeof(int), "int array");
     for (int i = 0; i < _alphabetSize; i++) {
         swappableAlphabet[i] = _alphabet[i];
         swappableOccurences[i] = 0;
@@ -180,9 +180,9 @@ int* getCharacterDistributionFromFile(char* _alphabet, int _alphabetSize, FILE* 
     return swappableOccurences;
 }
 
-void printCharacterDistribution(int* _distribution, char* _alphabet, int _alphabetLength) {
+void printCharacterDistribution(const int* _distribution, const char* _alphabet, int _alphabetLength) {
     for (int i = 0; i < _alphabetLength; i++) {
-        char currentCharacter = _alphabet[i];
+        const char currentCharacter = _alphabet[i];
         if (currentCharacter == '\n') {
             printf("character \'\\n\' occurs %i times\n", _distribution[i]);
         } else {

@@ -36,9 +36,9 @@ static void removeHuffmanTreeAtIndex(struct huffmanTreeList* _list, int _index);
 // this is used only by getEncodedAlphabet
 static void getEncodedAlphabetRecursive(
     struct huffmanTreeNode* _node,
-    char* _alphabet,
+    const char* _alphabet,
     int _alphabetLength,
-    char** encodedAlphabet, // reference passed down by each function call
+    const char** encodedAlphabet, // reference passed down by each function call
     char* _prefix,
     int _prefixLength
 );
@@ -55,7 +55,7 @@ struct huffmanTreeListEntry {
 };
 
 static struct huffmanTree* newHuffmanTree(struct huffmanTreeNode* _root) {
-    struct huffmanTree* toReturn = saferMalloc(sizeof(struct huffmanTree), "huffmanTree");
+    struct huffmanTree* const toReturn = saferMalloc(sizeof(struct huffmanTree), "huffmanTree");
     toReturn -> root = _root;
     toReturn -> totalWeight = _root -> weight;
     return toReturn;
@@ -67,13 +67,13 @@ void freeHuffmanTree(struct huffmanTree* _huffmanTree) {
 }
 
 static struct huffmanTree* mergeHuffmanTree(struct huffmanTree* _tree1, struct huffmanTree* _tree2) {
-    struct huffmanTreeNode* newHuffmanTreeRoot = saferMalloc(sizeof(struct huffmanTreeNode), "huffmanTreeNode");
+    struct huffmanTreeNode* const newHuffmanTreeRoot = saferMalloc(sizeof(struct huffmanTreeNode), "huffmanTreeNode");
     newHuffmanTreeRoot -> content = ' '; // irrelevant since this is an inner node
     newHuffmanTreeRoot -> leftChild = _tree1 -> root;
     newHuffmanTreeRoot -> rightChild = _tree2 -> root;
     newHuffmanTreeRoot -> weight = (_tree1 -> totalWeight) + (_tree2 -> totalWeight);
 
-    struct huffmanTree* newHuffmanTree = saferMalloc(sizeof(struct huffmanTree), "huffmanTree");
+    struct huffmanTree* const newHuffmanTree = saferMalloc(sizeof(struct huffmanTree), "huffmanTree");
     newHuffmanTree -> root = newHuffmanTreeRoot;
     newHuffmanTree -> totalWeight = newHuffmanTreeRoot -> weight;
     
@@ -84,7 +84,7 @@ static struct huffmanTree* mergeHuffmanTree(struct huffmanTree* _tree1, struct h
 
 
 void freeHuffmanTreeNode(struct huffmanTreeNode* _huffmanTreeNode);struct huffmanTreeNode* newHuffmanTreeNode(char _content, int _weight) {
-    struct huffmanTreeNode* toReturn = saferMalloc(sizeof(struct huffmanTreeNode), "huffmanTreeNode");
+    struct huffmanTreeNode* const toReturn = saferMalloc(sizeof(struct huffmanTreeNode), "huffmanTreeNode");
     toReturn -> content = _content;
     toReturn -> weight = _weight;
     toReturn -> leftChild = NULL;
@@ -103,7 +103,7 @@ static void freeHuffmanTreeNode(struct huffmanTreeNode* _huffmanTreeNode) {
 }
 
 static struct huffmanTreeList* newHuffmanTreeList() {
-    struct huffmanTreeList* toReturn = saferMalloc(sizeof(struct huffmanTreeList), "huffmanTreeList");
+    struct huffmanTreeList* const toReturn = saferMalloc(sizeof(struct huffmanTreeList), "huffmanTreeList");
     toReturn -> first = NULL;
     return toReturn;
 }
@@ -133,7 +133,7 @@ static void insertHuffmanTree(struct huffmanTreeList* _list, struct huffmanTree*
     // unsorted and pick them out in linear time. i just like this solution
 
     // create a new list entry object
-    struct huffmanTreeListEntry* newEntry = saferMalloc(sizeof(struct huffmanTreeListEntry), "huffmanTreeListEntry");
+    struct huffmanTreeListEntry* const newEntry = saferMalloc(sizeof(struct huffmanTreeListEntry), "huffmanTreeListEntry");
     newEntry -> content = _tree;
     newEntry -> next = NULL;
 
@@ -204,14 +204,14 @@ static void removeHuffmanTreeAtIndex(struct huffmanTreeList* _list, int _index) 
     }
 }
 
-struct huffmanTree* buildHuffmanTreeFromDistribution(char* _alphabet, int _alphabetSize, int* _distribution) {
+struct huffmanTree* buildHuffmanTreeFromDistribution(const char* _alphabet, const int _alphabetSize, const int* _distribution) {
     // the alphabet needs to have at least 1 member.
 
     assert(_alphabetSize >= 1, "the alphabet to build a Huffman tree must not be empty.");
 
     // first, create a list of huffman trees, one each for each symbol of the alphabet
 
-    struct huffmanTreeList* list = newHuffmanTreeList();
+    struct huffmanTreeList* const list = newHuffmanTreeList();
     for (int characterIndex = 0; characterIndex < _alphabetSize; characterIndex++) {
         // ignore the string terminator
         if (_alphabet[characterIndex] != '\0') {
@@ -229,8 +229,8 @@ struct huffmanTree* buildHuffmanTreeFromDistribution(char* _alphabet, int _alpha
 
     // merge the two trees with the least weight together until only one tree is left.
     while (getHuffmanTreeListLength(list) >= 2) {
-        struct huffmanTreeListEntry* firstTreeListEntry = list -> first;
-        struct huffmanTreeListEntry* secondTreeListEntry = firstTreeListEntry -> next;
+        struct huffmanTreeListEntry* const firstTreeListEntry = list -> first;
+        struct huffmanTreeListEntry* const secondTreeListEntry = firstTreeListEntry -> next;
         
         if (secondTreeListEntry) {
             // extract the trees from the first two list entries, then remove the first two list entries from the list.
@@ -249,13 +249,13 @@ struct huffmanTree* buildHuffmanTreeFromDistribution(char* _alphabet, int _alpha
     }
     
     // extract the final tree and then clean up
-    struct huffmanTree* toReturn = list -> first -> content;
+    struct huffmanTree* const toReturn = list -> first -> content;
     freeHuffmanTreeList(list);
     return toReturn;
 }
 
 struct huffmanTree* getEmptyRootHuffmanTree() {
-    struct huffmanTree* toReturn = newHuffmanTree(
+    struct huffmanTree* const toReturn = newHuffmanTree(
         newHuffmanTreeNode(' ', 0)
     );
     return toReturn;
@@ -291,8 +291,8 @@ void addEncodedNodeToHuffmanTree(struct huffmanTree* _tree, char _content, char*
 }
 
 // CONTINUEHERE add documentation - null means no encoding
-char** getEncodedAlphabet(struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
-    char** toReturn = saferMalloc(sizeof(char*) * _alphabetLength, "array of huffman codes");
+const char** getEncodedAlphabet(struct huffmanTree* _tree, const char* _alphabet, int _alphabetLength) {
+    const char** const toReturn = saferMalloc(sizeof(char*) * _alphabetLength, "array of huffman codes");
     for (int i = 0; i < _alphabetLength; i++) {
         toReturn[i] = NULL;
     }
@@ -302,9 +302,9 @@ char** getEncodedAlphabet(struct huffmanTree* _tree, char* _alphabet, int _alpha
 
 static void getEncodedAlphabetRecursive(
     struct huffmanTreeNode* _node,
-    char* _alphabet,
+    const char* _alphabet,
     int _alphabetLength,
-    char** encodedAlphabet, // reference passed down by each function call
+    const char** encodedAlphabet, // reference passed down by each function call
     char* _prefix,
     int _prefixLength
 ) {
@@ -314,7 +314,7 @@ static void getEncodedAlphabetRecursive(
     // technically, if a node has one child then it must have two, but having 2 seperate ifs is more intuitive. my code my rules
     if (_node -> leftChild) {
         isInner = true;
-        char* leftChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
+        char* const leftChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
         memcpy(leftChildPrefix, _prefix, _prefixLength);
         leftChildPrefix[_prefixLength] = '0';
         getEncodedAlphabetRecursive(_node -> leftChild, _alphabet, _alphabetLength, encodedAlphabet, leftChildPrefix, _prefixLength + 1);
@@ -322,29 +322,29 @@ static void getEncodedAlphabetRecursive(
     }
     if (_node -> rightChild) {
         isInner = true;
-        char* rightChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
+        char* const rightChildPrefix = saferMalloc(sizeof(char) * _prefixLength + 1, "huffman tree prefix");
         memcpy(rightChildPrefix, _prefix, _prefixLength);
         rightChildPrefix[_prefixLength] = '1';
         getEncodedAlphabetRecursive(_node -> rightChild, _alphabet, _alphabetLength, encodedAlphabet, rightChildPrefix, _prefixLength + 1);
         free(rightChildPrefix);
     }
     if (!isInner) {
-        char* characterAlphabetPointer = strchr(_alphabet, _node -> content);
+        char* const characterAlphabetPointer = strchr(_alphabet, _node -> content);
         if (!characterAlphabetPointer) {
             printf("Error: Found character %c in huffman tree, this character is not known to this function.\n", _node -> content);
             exit(EXIT_FAILURE);
         }
-        char* encodingString = saferMalloc(sizeof(char) * (_prefixLength + 1), "huffman encoding string");
+        char* const encodingString = saferMalloc(sizeof(char) * (_prefixLength + 1), "huffman encoding string");
         memcpy(encodingString, _prefix, _prefixLength);
         encodingString[_prefixLength] = '\0';
         encodedAlphabet[characterAlphabetPointer - _alphabet] = encodingString;
     }
 }
 
-int getLongestHuffmanCodeLength(char** _encodedAlphabet, int _alphabetLength) {
+int getLongestHuffmanCodeLength(const char** _encodedAlphabet, int _alphabetLength) {
     int longestCode = 0;
     for (int currentCodeIndex = 0; currentCodeIndex < _alphabetLength; currentCodeIndex++) {
-        char* currentCode = _encodedAlphabet[currentCodeIndex];
+        const char* const currentCode = _encodedAlphabet[currentCodeIndex];
         int currentIndexInCode = 0;
         while (true) {
             if (currentCode[currentIndexInCode] == '\0') {
@@ -360,10 +360,10 @@ int getLongestHuffmanCodeLength(char** _encodedAlphabet, int _alphabetLength) {
     return longestCode;
 }
 
-void printHuffmanCodes(struct huffmanTree* _tree, char* _alphabet, int _alphabetLength) {
-    char** codes = getEncodedAlphabet(_tree, _alphabet, _alphabetLength);
+void printHuffmanCodes(struct huffmanTree* _tree, const char* _alphabet, int _alphabetLength) {
+    const char** const codes = getEncodedAlphabet(_tree, _alphabet, _alphabetLength);
     for (int i = 0; i < ALPHABET_LENGTH; i++) {
-        char* code = codes[i];
+        const char* code = codes[i];
         if (code) {
             if (_alphabet[i] == '\n') {
                 printf("character \'\\n\' has code %s\n", code);

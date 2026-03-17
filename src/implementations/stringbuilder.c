@@ -5,13 +5,13 @@
 #include <interface/stringbuilder.h>
 
 struct stringBuilder* newStringBuilder() {
-    struct stringBuilder* toReturn = saferMalloc(sizeof(struct stringBuilder), "stringBuilder");
+    struct stringBuilder* const toReturn = saferMalloc(sizeof(struct stringBuilder), "stringBuilder");
     toReturn -> first = NULL;
     return toReturn;
 }
 
 void appendCharToStringBuilder(struct stringBuilder* _stringBuilder, char character) {
-    struct stringBuilderChar* toInsert = saferMalloc(sizeof(struct stringBuilderChar), "stringBuilderChar");
+    struct stringBuilderChar* const toInsert = saferMalloc(sizeof(struct stringBuilderChar), "stringBuilderChar");
     toInsert -> content = character;
     toInsert -> next = NULL;
 
@@ -42,7 +42,7 @@ char* finalizeStringBuilder(struct stringBuilder* _stringBuilder) {
     }
 
     // allocate a char array with the string builder's length plus space for the null terminator
-    char* toReturn = saferMalloc((length + 1) * sizeof(char), "finalized string from stringBuilder");
+    char* const toReturn = saferMalloc((length + 1) * sizeof(char), "finalized string from stringBuilder");
     current = _stringBuilder -> first;
     for (int i = 0; i < length; i++) {
         toReturn[i] = current -> content;

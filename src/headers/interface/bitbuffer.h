@@ -27,4 +27,4 @@ void addByte(struct bitBuffer* _bitBuffer, unsigned char _byte);
 unsigned char flushSingleByte(struct bitBuffer* _bitBuffer);
 
 // flushes out the index of the encoded character in the beginning of the bit buffer, otherwise -1
-int flushEncodedCharacter(struct bitBuffer* _bitBuffer, char** _encodings, int _alphabetLength);
+int flushEncodedCharacter(struct bitBuffer* _bitBuffer, const char** _encodings, const int _alphabetLength);

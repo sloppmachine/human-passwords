@@ -11,7 +11,7 @@ static struct bitBufferElement* newBitBufferElement(bool _content);
 static char flushSingleBit(struct bitBuffer* _bitBuffer);
 
 struct bitBuffer* newBitBuffer() {
-    struct bitBuffer* toReturn = saferMalloc(sizeof(struct bitBuffer), "bitBuffer");
+    struct bitBuffer* const toReturn = saferMalloc(sizeof(struct bitBuffer), "bitBuffer");
     toReturn -> size = 0;
     toReturn -> first = NULL;
     toReturn -> last = NULL;
@@ -29,7 +29,7 @@ void freeBitBuffer(struct bitBuffer* _bitBuffer) {
 }
 
 static struct bitBufferElement* newBitBufferElement(bool _content) {
-    struct bitBufferElement* toReturn = saferMalloc(sizeof(struct bitBufferElement), "bitBufferElement");
+    struct bitBufferElement* const toReturn = saferMalloc(sizeof(struct bitBufferElement), "bitBufferElement");
     toReturn -> content = _content;
     toReturn -> next = NULL;
     toReturn -> last = NULL;
@@ -37,7 +37,7 @@ static struct bitBufferElement* newBitBufferElement(bool _content) {
 }
 
 void addBit(struct bitBuffer* _bitBuffer, bool _bit) {
-    struct bitBufferElement* toInsert = newBitBufferElement(_bit);
+    struct bitBufferElement* const toInsert = newBitBufferElement(_bit);
     if (_bitBuffer -> size) {
         toInsert -> last = _bitBuffer -> last;
         _bitBuffer -> last -> next = toInsert;
@@ -58,7 +58,7 @@ void addByte(struct bitBuffer* _bitBuffer, unsigned char _byte) {
 
 static char flushSingleBit(struct bitBuffer* _bitBuffer) {
     if (_bitBuffer -> size) {
-        struct bitBufferElement* firstElement = _bitBuffer -> first;
+        struct bitBufferElement* const firstElement = _bitBuffer -> first;
         char toReturn;
         if (firstElement -> content) {
             toReturn = 1;
@@ -88,10 +88,10 @@ unsigned char flushSingleByte(struct bitBuffer* _bitBuffer) {
     return toReturn;
 }
 
-int flushEncodedCharacter(struct bitBuffer* _bitBuffer, char** _encodings, int _alphabetLength) {
+int flushEncodedCharacter(struct bitBuffer* _bitBuffer, const char** _encodings, const int _alphabetLength) {
     // the beginning of the bit buffer may only hold up to one encoding. there is no ambiguity
     for (int currentEncodingIndex = 0; currentEncodingIndex < _alphabetLength; currentEncodingIndex++) {
-        char* encoding = _encodings[currentEncodingIndex];
+        const char* encoding = _encodings[currentEncodingIndex];
         // check if the encoding matches the beginning of the bitbuffer (compare the two).
         // the matching is successful if we reach the null terminator of the encoding before the bit buffer ends or holds different values than the encoding
         bool isEncodingMatched = true;
@@ -99,7 +99,7 @@ int flushEncodedCharacter(struct bitBuffer* _bitBuffer, char** _encodings, int _
         int currentIndexInEncoding = 0;
         struct bitBufferElement* currentBitBufferElement = _bitBuffer -> first;
         while (true) {
-            char currentEncodingChar = encoding[currentIndexInEncoding];
+            const char currentEncodingChar = encoding[currentIndexInEncoding];
             if (currentEncodingChar == '\0') {
                 // the encoding has ended and been matched successfully
                 break;
@@ -109,8 +109,8 @@ int flushEncodedCharacter(struct bitBuffer* _bitBuffer, char** _encodings, int _
                 isEncodingMatched = false;
                 break;
             } else {
-                bool currentEncodingBit = !(currentEncodingChar == '0'); // convert '0' and '1' to "booleans" (zero and nonzero ints)
-                bool currentBitBufferBit = currentBitBufferElement -> content;
+                const bool currentEncodingBit = !(currentEncodingChar == '0'); // convert '0' and '1' to "booleans" (zero and nonzero ints)
+                const bool currentBitBufferBit = currentBitBufferElement -> content;
                 // if the encoding does not match with the bit in the bitbuffer, the matching fails
                 if (!currentEncodingBit && currentBitBufferBit || currentEncodingBit && !currentBitBufferBit) {
                     isEncodingMatched = false;

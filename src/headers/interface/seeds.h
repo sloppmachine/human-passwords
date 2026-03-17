@@ -22,7 +22,7 @@ struct translatedSeedList {
 // this struct is not used by anything besides translatedSeedList
 struct translatedSeedListEntry {
     int seed;
-    char* word;
+    const char* word;
     struct translatedSeedListEntry* next;
 };
 
@@ -35,13 +35,13 @@ void freeTranslatedSeedList(struct translatedSeedList* _list);
 void appendToTranslatedSeedList(struct translatedSeedList* _list, int _seed, char* _word);
 
 // perform sequential search. returns a null pointer if the translation is not known
-char* getSeedTranslation(int _seedToTranslate, struct translatedSeedList* _list);
+const char* getSeedTranslation(int _seedToTranslate, const struct translatedSeedList* _list);
 
 // generate array of arrays with ints, used for extraction from the word pool, guaranteed to be in the wordPoolSize and without modulo bias
-int** generateSeedArray(struct amount* _amount, unsigned int _wordPoolSize);
+const int** generateSeedArray(const struct amount* _amount, unsigned int _wordPoolSize);
 
 // frees the 2d array allocated by generateSeedArray
-void freeSeedArray(int** _seedArray, int _amountOfPasswords);
+void freeSeedArray(const int** _seedArray, int _amountOfPasswords);
 
 // generates a seedsToFind struct from a seed array
-struct seedsToFind* getSeedsToFind(int** _seeds, struct amount* _amount);
+struct seedsToFind* getSeedsToFind(const int** _seeds, const struct amount* _amount);

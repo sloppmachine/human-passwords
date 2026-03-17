@@ -7,7 +7,7 @@
 #include <interface/commons.h>
 #include <interface/seeds.h>
 
-static struct translatedSeedListEntry* newTranslatedSeedListEntry(int _seed, char* _word);
+static struct translatedSeedListEntry* newTranslatedSeedListEntry(int _seed, const char* _word);
 
 // also frees the word saved in it!
 static void freeTranslatedSeedListEntry(struct translatedSeedListEntry* _entry);
@@ -18,7 +18,7 @@ void freeSeedsToFind(struct seedsToFind* _seedsToFind) {
 }
 
 struct translatedSeedList* newTranslatedSeedList() {
-    struct translatedSeedList* toReturn = saferMalloc(sizeof(struct translatedSeedList), "translatedSeedList");
+    struct translatedSeedList* const toReturn = saferMalloc(sizeof(struct translatedSeedList), "translatedSeedList");
     toReturn -> first = NULL;
     return toReturn;
 }
@@ -33,8 +33,8 @@ void freeTranslatedSeedList(struct translatedSeedList* _list) {
     free(_list);
 }
 
-static struct translatedSeedListEntry* newTranslatedSeedListEntry(int _seed, char* _word) {
-    struct translatedSeedListEntry* toReturn = saferMalloc(sizeof(struct translatedSeedListEntry), "translatedSeedListEntry");
+static struct translatedSeedListEntry* newTranslatedSeedListEntry(int _seed, const char* _word) {
+    struct translatedSeedListEntry* const toReturn = saferMalloc(sizeof(struct translatedSeedListEntry), "translatedSeedListEntry");
     toReturn -> next = NULL;
     toReturn -> seed = _seed;
     toReturn -> word = _word;
@@ -42,12 +42,12 @@ static struct translatedSeedListEntry* newTranslatedSeedListEntry(int _seed, cha
 }
 
 static void freeTranslatedSeedListEntry(struct translatedSeedListEntry* _entry) {
-    free(_entry -> word);
+    free((char*) _entry -> word); // cast to a non-const pointer
     free(_entry);
 }
 
 void appendToTranslatedSeedList(struct translatedSeedList* _list, int _seed, char* _word) {
-    struct translatedSeedListEntry* toInsert = newTranslatedSeedListEntry(_seed, _word);
+    struct translatedSeedListEntry* const toInsert = newTranslatedSeedListEntry(_seed, _word);
     if (_list -> first) {
         // try to find the last entry
         struct translatedSeedListEntry* last = _list -> first;
@@ -60,8 +60,8 @@ void appendToTranslatedSeedList(struct translatedSeedList* _list, int _seed, cha
     }
 }
 
-char* getSeedTranslation(int _seedToTranslate, struct translatedSeedList* _list) {
-    char* toReturn = NULL;
+const char* getSeedTranslation(int _seedToTranslate, const struct translatedSeedList* _list) {
+    const char* toReturn = NULL;
     struct translatedSeedListEntry* current = _list -> first;
     while (current) {
         if (current -> seed == _seedToTranslate) {
@@ -73,14 +73,14 @@ char* getSeedTranslation(int _seedToTranslate, struct translatedSeedList* _list)
     return toReturn;
 }
 
-int** generateSeedArray(struct amount* _amount, unsigned int wordPoolSize) {
-    int amountOfPasswords = _amount -> amoutOfPasswords;
-    int wordsPerPassword = _amount -> wordsPerPassword;
-    int** toReturn = saferMalloc(sizeof(unsigned long int *) * amountOfPasswords, "2d seed array, 1st dimension");
+const int** generateSeedArray(const struct amount* _amount, unsigned int wordPoolSize) {
+    const int amountOfPasswords = _amount -> amoutOfPasswords;
+    const int wordsPerPassword = _amount -> wordsPerPassword;
+    int** const toReturn = saferMalloc(sizeof(unsigned long int *) * amountOfPasswords, "2d seed array, 1st dimension");
 
     // accepting numbers beyong this point leads to modulo bias. if a random number is bigger than this, it is discarded.
     // it is the largest multiple of wordPoolSize that is still in range of an unsigned long int
-    unsigned long int retryZone = (ULONG_MAX / wordPoolSize) * wordPoolSize;
+    const unsigned long int retryZone = (ULONG_MAX / wordPoolSize) * wordPoolSize;
 
     for (int currentIndex1 = 0; currentIndex1 < amountOfPasswords; currentIndex1++) {
         toReturn[currentIndex1] = saferMalloc(sizeof(int) * wordsPerPassword, "2d seed array, 2nd dimension");
@@ -96,22 +96,22 @@ int** generateSeedArray(struct amount* _amount, unsigned int wordPoolSize) {
         }
     }
 
-    return toReturn;
+    return (const int**) toReturn;
 }
 
-void freeSeedArray(int** _seedArray, int _amountOfPasswords) {
+void freeSeedArray(const int** _seedArray, int _amountOfPasswords) {
     for (int i = 0; i < _amountOfPasswords; i++) {
-        free(_seedArray[i]);
+        free((int*) _seedArray[i]);
     }
     free(_seedArray);
 }
 
-struct seedsToFind* getSeedsToFind(int** _seeds, struct amount* _amount) {
-    int level1Size = _amount -> amoutOfPasswords;
-    int level2Size = _amount -> wordsPerPassword;
+struct seedsToFind* getSeedsToFind(const int** _seeds, const struct amount* _amount) {
+    const int level1Size = _amount -> amoutOfPasswords;
+    const int level2Size = _amount -> wordsPerPassword;
 
     // initialize the struct assuming there are no duplicates (duplicates are handled later)
-    struct seedsToFind* toReturn = saferMalloc(sizeof(struct seedsToFind), "seedsToFind");
+    struct seedsToFind* const toReturn = saferMalloc(sizeof(struct seedsToFind), "seedsToFind");
     toReturn -> amount = level1Size * level2Size;
     toReturn -> sortedArray = saferMalloc(level1Size * level2Size * sizeof(int), "seedsToFind sortedArray");
     
@@ -147,11 +147,11 @@ struct seedsToFind* getSeedsToFind(int** _seeds, struct amount* _amount) {
 
     // check for duplicates
     if (elementsWritten != toReturn -> amount) {
-        int* oldArray = toReturn -> sortedArray;
-        int oldArraySize = toReturn -> amount;
+        const int* oldArray = toReturn -> sortedArray;
+        const int oldArraySize = toReturn -> amount;
         // create a new array where duplicates are not copied over
         toReturn -> amount = elementsWritten;
-        int* newArray = saferMalloc(elementsWritten * sizeof(int), "seedsToReturn sortedArray");
+        int* const newArray = saferMalloc(elementsWritten * sizeof(int), "seedsToReturn sortedArray");
 
         int newArrayIndex = 0;
         int lastElementCopied = -1;
@@ -169,7 +169,7 @@ struct seedsToFind* getSeedsToFind(int** _seeds, struct amount* _amount) {
         }
 
         toReturn -> sortedArray = newArray;
-        free(oldArray);
+        free((int*) oldArray);
     }
 
     return toReturn;
