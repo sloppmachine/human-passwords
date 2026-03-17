@@ -17,6 +17,15 @@ void assert(int _expression, char* _errorDescription) {
     }
 }
 
+char assertedFGetC(FILE* source) {
+    int toReturn = fgetc(source);
+    if (toReturn == -1) {
+        printf("Error: could not read from file. It might be corruped or you might be lacking permissions.\n");
+        exit(EXIT_FAILURE);
+    }
+    return (char) toReturn;
+}
+
 void printFromCharArray(char* source, int length) {
     for (int i = 0; i < length; i++) {
         printf("%c", source[i]);

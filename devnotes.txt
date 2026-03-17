@@ -6,11 +6,7 @@ consider refactoring, to have the alphabet be null terminated too (eliminating f
 
 use [] instead of * always when null-terminated?
 
-replace char with uint8 (this includes variable names)
-
 verify reading as type with mroe than 8 bits when reading from file
-
-check error cases when reading from binary files
 
 reduce "magic strings"
 

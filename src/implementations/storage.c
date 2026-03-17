@@ -208,8 +208,8 @@ void buildWordPoolFile(FILE* _source, FILE* _target, struct huffmanTree* _tree, 
 }
 
 static void extractAndAddHuffmanTreeNodeFromFile(FILE* _file, struct huffmanTree* _tree) {
-    char character = fgetc(_file);
-    char prefixLength = fgetc(_file);
+    char character = assertedFGetC(_file);
+    char prefixLength = assertedFGetC(_file);
     char* prefix = saferMalloc(sizeof(char) * prefixLength, "huffman tree prefix");
     fread(prefix, sizeof(char), prefixLength, _file);
     addEncodedNodeToHuffmanTree(_tree, character, prefix, prefixLength);
@@ -217,7 +217,7 @@ static void extractAndAddHuffmanTreeNodeFromFile(FILE* _file, struct huffmanTree
 }
 
 static struct huffmanTree* reconstructHuffmanTreeFromFile(FILE* _file) {
-    int nodesToRead = fgetc(_file);
+    int nodesToRead = assertedFGetC(_file);
     struct huffmanTree* toReturn = getEmptyRootHuffmanTree();
 
     int nodesExtracted = 0;
@@ -246,7 +246,7 @@ void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphab
     printIfVerbose(verbose, "Decoding the binary's word pool...\n");
 
     // the next byte represents the amount of bits in the last byte that are of relevance
-    char finalBitCount = fgetc(source);
+    char finalBitCount = assertedFGetC(source);
 
     // read bytes from the encoded word stream. the last byte has a special meaning, so we need to read "a byte ahead" to see the EOF in time
     int currentChar = 0;
@@ -323,7 +323,7 @@ unsigned int getWordPoolSize(FILE* _source) {
     fseek(_source, 0, SEEK_SET);
     for (int i = 0; i < 4; i++) {
         toReturn *= 256;
-        toReturn += fgetc(_source);
+        toReturn += assertedFGetC(_source);
     }
     fseek(_source, currentFileLocation, SEEK_SET);
     return toReturn;
@@ -375,7 +375,7 @@ struct translatedSeedList* translateSeedListWithWordPool(
     printIfVerbose(verbose, "Decoding the binary's word pool...\n");
 
     // the next byte represents the amount of bits in the last byte that are of relevance
-    char finalBitCount = fgetc(source);
+    char finalBitCount = assertedFGetC(source);
 
     // read bytes from the encoded word stream. the last byte has a special meaning, so we need to read "a byte ahead" to see the EOF in time
     int currentChar = 0;

@@ -1,4 +1,4 @@
-// storage.h and storage.c contain the functions that directly write to or read from the local file system.
+// storage.h and storage.c contain functions that write and restore information specific to this program (huffman trees and encoded words)
 
 // exits if the source file couldn't be opened, implements a verbose option
 FILE* openSourceFile(bool _verbose, char* _fileName);
