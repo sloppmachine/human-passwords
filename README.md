@@ -31,5 +31,7 @@ The final mode `strength` gives a short summary on the strength of the passphras
 ## Source code documentation
 For a summary on project structure, see [conventions.md](conventions.md).
 
+The save file structure is currently in [devnotes.txt](devnotes.txt).
+
 ## Licensing
 [This work is licensed under the EUPL.](LICENSE.txt)
