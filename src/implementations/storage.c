@@ -328,14 +328,15 @@ void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphab
     free(tree);
 }
 
-unsigned int getWordPoolSize(FILE* _source) {
-    unsigned int toReturn;
+unsigned long int getWordPoolSize(FILE* _source) {
+    unsigned long int toReturn = 0;
     int currentFileLocation = ftell(_source);
     // read the first 4 bytes as one integer
     fseek(_source, 0, SEEK_SET);
     for (int i = 0; i < 4; i++) {
         toReturn *= 256;
-        toReturn += assertedFGetC(_source);
+        unsigned char byteRead = assertedFGetC(_source);
+        toReturn += byteRead;
     }
     fseek(_source, currentFileLocation, SEEK_SET);
     return toReturn;

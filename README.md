@@ -1,4 +1,4 @@
-# (WIP) Human passwords
+# Human passwords
 I suck at remembering random information, like random passwords. For fun and curiosity, i made this tool to generate passphrases from an arbitrary given word pool (for example, containing the english language).
 
 ## Building
@@ -14,9 +14,15 @@ Generating passphrases follows 2 steps: first, you need a word pool in the form 
 
 Then, after having generated a file called `wordpool.bin`, you can exract passwords like:
 
-```human-passwords extract --source=wordpoolbin --target=passwords.txt --amount=10x10```
+```human-passwords extract --source=wordpool.bin --target=passwords.txt --amount=10x10```
 
-You can also use a mode called `restore`, which restores the original plain text word pool from the compressed binary.
+You can also use a mode called `restore`, which restores the original plain text word pool from the compressed binary:
+
+```human-passwords restore --source=wordpool.bin --target=restored-dump.txt```
+
+The final mode `strength` gives a short summary on the strength of the passphrases generated from a binary:
+
+```human-passwords strength --source=wordpool.bin```
 
 ## Problems and future considerations
 - The program is not optimized for extraction of large amounts of words (say, over 1000). I might fix that.

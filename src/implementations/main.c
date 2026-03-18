@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <getopt.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -155,6 +156,8 @@ int main(int argc, char** argv) {
             mode = RESTORE;
         } else if (!strcmp(modeInput, "extract")) {
             mode = EXTRACT;
+        } else if (!strcmp(modeInput, "strength")) {
+            mode = STRENGTH;
         } else {
             printf(UNKNOWN_MODE_TEXT);
             exit(EXIT_FAILURE);
@@ -165,24 +168,23 @@ int main(int argc, char** argv) {
     FILE* sourceFile;
     FILE* targetFile;
 
-    // decide action to take
-    switch (mode) {
-        case DEFAULT:
-            if (help) {
-                printf(HELP_TEXT_DEFAULT_MODE);
-            } else {
-                printf(DEFAULT_TEXT);
-            }
-            break;
-        
-        case BUILD:
-            // if help was asked, ignore everything else
-            if (help) {
-                printf(HELP_TEXT_BUILD_MODE);
-                break;
-            }
+    // decide action to take. avoided using a switch statement so that the cases have different scopes, therefore can have constant variables with same names
+    if (mode == DEFAULT) {
+        if (help) {
+            printf(HELP_TEXT_DEFAULT_MODE);
+        } else {
+            printf(DEFAULT_TEXT);
+        }
+    }
 
-            verifyRequiredArgument(sourceFileName, "--source=<raw word file>");
+    else if (mode == BUILD) {
+        // if help was asked, ignore everything else
+        if (help) {
+            printf(HELP_TEXT_BUILD_MODE);
+        }
+
+        else {
+            verifyRequiredArgument(sourceFileName, "--source=<plain text file>");
             verifyRequiredArgument(targetFileName, "--target=<target binary file name>");
             
             printIfVerbose(verbose, "Building binary from raw word list with verbose setting.\n");
@@ -205,17 +207,18 @@ int main(int argc, char** argv) {
             printIfVerbose(verbose, "Cleaning up...\n");
             fclose(sourceFile);
             fclose(targetFile);
-            break;
-        
-        case RESTORE:
-            // if help was asked, ignore everything else
-            if (help) {
-                printf(HELP_TEXT_RESTORE_MODE);
-                break;
-            }
+        }
+    }
 
-            verifyRequiredArgument(sourceFileName, "--source=<raw word file>");
-            verifyRequiredArgument(targetFileName, "--target=<target binary file name>");
+    else if (mode == RESTORE) {
+        // if help was asked, ignore everything else
+        if (help) {
+            printf(HELP_TEXT_RESTORE_MODE);
+        }
+
+        else {
+            verifyRequiredArgument(sourceFileName, "--source=<binary file>");
+            verifyRequiredArgument(targetFileName, "--target=<target plain text file name>");
 
             printIfVerbose(verbose, "Restoring raw word list from binary with verbose setting.\n");
 
@@ -227,15 +230,17 @@ int main(int argc, char** argv) {
             printIfVerbose(verbose, "Cleaning up...\n");
             fclose(sourceFile);
             fclose(targetFile);
-            break;
-        case EXTRACT:
-            if (help) {
-                printf(HELP_TEXT_EXTRACT_MODE);
-                break;
-            }
+        }
+    }
 
-            verifyRequiredArgument(sourceFileName, "--source=<raw word file>");
-            verifyRequiredArgument(targetFileName, "--target=<target binary file name>");
+    else if (mode == EXTRACT) {
+        if (help) {
+            printf(HELP_TEXT_EXTRACT_MODE);
+        }
+
+        else {
+            verifyRequiredArgument(sourceFileName, "--source=<binary file>");
+            verifyRequiredArgument(targetFileName, "--target=<target plain text file name>");
             verifyRequiredArgument(amountInput, "--amount=<amount of passwords>x<words per password>");
             const struct amount* amount = processAmountArgument(amountInput);
 
@@ -245,7 +250,7 @@ int main(int argc, char** argv) {
             targetFile = openTargetFile(verbose, targetFileName);
 
             printIfVerbose(verbose, "Generating random seeds...\n");
-            const unsigned int wordPoolSize = getWordPoolSize(sourceFile);
+            const unsigned long int wordPoolSize = getWordPoolSize(sourceFile);
             const int** seedArray = generateSeedArray(amount, wordPoolSize);
 
             printIfVerbose(verbose, "Generating sorted seed list for retrieval...\n");
@@ -271,7 +276,51 @@ int main(int argc, char** argv) {
             free((struct amount*) amount);
             fclose(sourceFile);
             fclose(targetFile);
-            break;
+        }
+    }
+
+    else if (mode == STRENGTH) {
+        if (help) {
+            printf(HELP_TEXT_STRENGTH_MODE);
+        }
+        
+        else {
+            verifyRequiredArgument(sourceFileName, "--source=<binary file>");
+
+            printIfVerbose(verbose, "Getting information on word pool strength with verbose setting.\n");
+
+            sourceFile = openSourceFile(verbose, sourceFileName);
+            
+            const unsigned long int wordPoolSize = getWordPoolSize(sourceFile);
+
+            /*
+            compare the strength of a passphrase generated from the word pool to the strength of a password generated by a random sequence of single
+            characters from an alphabet. We will call the size of the word pool "|W|" and the size of the alphabet "|A|"
+
+            the amount of possibilities for a password (i.e. its strength) is given by (size of random password alphabet)^(length of password)
+            for the sake of argument and approximation, we will permit the length of the password to take fractional values.
+
+            there is a number y which is the "ratio" of how strong a random password is compared to a passphrase from the word pool; this means that
+            a passphrase consisting of x (with x > 0) words from the word pool is always as strong as a random password of length xy.
+            (the proof is trivial and not included in this source code)
+
+            to find y, we:
+            (|A|)^(xy) = (|W|)^(x)    =>    (|A|)^x = |W|    =>    x = log_[|A|] (|W|)    =>    x = (log(|W|)) / (log(|A|))
+
+            */
+            float x = (log(wordPoolSize) / log(RANDOM_PASSWORD_ALPHABET_LENGTH));
+            
+            printf("This binary represents a total of %lu words.\n", wordPoolSize);
+            printf("A normal password consisting of a random sequence of the following %lu characters:\n", RANDOM_PASSWORD_ALPHABET_LENGTH);
+            printf("%s\n", RANDOM_PASSWORD_ALPHABET);
+            printf("would need to contain approximately %f times as many characters as a passphrase from this word pool has words, so that their strength matches.\n", x);
+
+            printf("In other words, a passphrase containing X words from this binary is as strong as a normal password containing X times %f random characters out of the above.\n", x);
+            printf("A random password using that alphabet with a length of 12 characters is as strong as a passphrase using %f words from this binary.\n", (12.0 / x));
+
+            printIfVerbose(verbose, "Cleaning up...\n");
+            fclose(sourceFile);
+        }
     }
 
 }

@@ -19,13 +19,13 @@ void assert(int _expression, const char* _errorDescription) {
     }
 }
 
-char assertedFGetC(FILE* source) {
+unsigned char assertedFGetC(FILE* source) {
     int toReturn = fgetc(source);
     if (toReturn == -1) {
         printf(COULD_NOT_READ_FILE_TEXT);
         exit(EXIT_FAILURE);
     }
-    return (char) toReturn;
+    return (unsigned char) toReturn;
 }
 
 void printFromCharArray(char* source, int length) {

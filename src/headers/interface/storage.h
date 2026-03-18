@@ -13,7 +13,7 @@ void buildWordPoolFile(FILE* _source, FILE* _target, struct huffmanTree* _tree, 
 void restoreRawWordList(FILE* source, FILE* target, char* _alphabet, int _alphabetLength, bool verbose);
 
 // gets the amount of words stored in a binary
-unsigned int getWordPoolSize(FILE* _source);
+unsigned long int getWordPoolSize(FILE* _source);
 
 // reads the file and returns a list of the translated seeds. the seeds act as the indexes of words in the pool
 struct translatedSeedList* translateSeedListWithWordPool(

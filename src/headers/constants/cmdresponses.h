@@ -1,6 +1,6 @@
 // this file holds some text that will be printed in the command line as a response to executing the program
 
-#define DEFAULT_TEXT "(WIP) This is the default text. use -h or --help\n"
+#define DEFAULT_TEXT "This is the default text. use -h or --help\n"
 
 #define HELP_TEXT_DEFAULT_MODE "This is a tool by slopmachine: https://github.com/sloppmachine/human-passwords \n\
 Motivation:\n\
@@ -14,6 +14,8 @@ Modes:\n\
                         required options: --source, --target\n\
     extract             Extract an amount of passwords from a compressed binary.\n\
                         required options: --source, --target, --amount\n\
+    strength            Gives information on the strength of a word pool binary.\n\
+                        required options: --source\n\
 General options:\n\
     --help          -h      Prints general help or help concerning any specific mode,\n\
     --verbose       -v      Prints what the program is currently doing.\n\
@@ -22,25 +24,31 @@ General options:\n\
 General syntax:\n\
     human-passwords build <options>\n\
 Required options:\n\
-    --source=       -s=     The plain text file to read from.\n\
-    --target=       -t=     The location to write the output.\n\
+    --source=       -s=     The plain text file location consisting of words separated by newlines.\n\
+    --target=       -t=     The location to write the output binary.\n\
 \n"
 #define HELP_TEXT_RESTORE_MODE "The restore mode is used to restore the original plain text word pool from a compressed binary that was made using the build mode.\n\
 General syntax:\n\
     human-passwords restore <options>\n\
 Required options:\n\
-    --source=       -s=     The plain text file to read from.\n\
+    --source=       -s=     The binary location to restore the original word list from.\n\
     --target=       -t=     The location to write the output.\n\
 \n"
 #define HELP_TEXT_EXTRACT_MODE "The extract mode is used to extract an amount of passphrases from the word pool represented by a compressed binary produced by the build mode.\n\
 General syntax:\n\
     human-passwords extract <options>\n\
 Required options:\n\
-    --source=       -s=     The plain text file to read from.\n\
+    --source=       -s=     The binary file location to extract a passphrase from.\n\
     --target=       -t=     The location to write the output.\n\
     --amount=       -a=     The format of passphrases to be extracted. It follows the shape <amount of passphrases>x<words per passphrase>\n\
 Optional options:\n\
     --seperator=    -p=     The series of characters placed betweens words of a passphrase.\n\
+\n"
+#define HELP_TEXT_STRENGTH_MODE "The strength mode gives a short summary on the strength of a passphrase generated from a word pool.\n\
+General syntax:\n\
+    human-passwords strength <options>\n\
+Required options:\n\
+    --source=       -s=     The binary file location to read from.\n\
 \n"
 
 // errors
