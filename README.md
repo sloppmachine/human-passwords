@@ -2,7 +2,7 @@
 I suck at remembering random information, like random passwords. For fun and curiosity, i made this tool to generate passphrases from an arbitrary given word pool (for example, containing the english language).
 
 ## Building
-Presuming you have gcc installed, you can just run `make` in the parent directory of the repository. The executable will appear in a new folder `bin/executable/human-passwords`. Otherwise, you can open and edit the makefile to use your compiler and flags of your choice. Everything needed for compiling is in the `src/` directory.
+Presuming you have gcc installed, you can just run `make` in the parent directory of the repository. The executable will appear in a new folder `bin/executable/human-passwords`. Otherwise, you can open and edit the makefile to use your compiler and flags of your choice. Everything you need to compile is in the `src/` directory.
 
 ## How to use
 
